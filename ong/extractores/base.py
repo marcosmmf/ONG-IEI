@@ -28,6 +28,7 @@ class Extractor:
         self.almacen = almacen
         self.geocoder = geocoder
         self._reparaciones = []
+        self._incidencias = []
 
     # ---------------------------------------------------------- a implementar
     def transformar(self, registro):
@@ -44,12 +45,17 @@ class Extractor:
             self._reparaciones.append({"campo": campo, "antes": antes, "despues": despues, "motivo": motivo})
 
     # ------------------------------------------------------------------ carga
+    def incidencia(self, campo, motivo):
+        """Registra una limitación del registro cargado sin contarla como reparación."""
+        self._incidencias.append({"campo": campo, "motivo": motivo})
+
     def cargar(self, registros, limite=None):
         informe = {"fuente": self.FUENTE, "leidos": 0, "cargados": 0, "duplicados": 0,
                    "reparados": [], "rechazados": []}
         for registro in registros[:limite] if limite else registros:
             informe["leidos"] += 1
             self._reparaciones = []
+            self._incidencias = []
             ident = {"id_origen": self.id_origen(registro)}
             try:
                 e = self.transformar(registro)
@@ -61,6 +67,8 @@ class Extractor:
                 informe["cargados"] += 1
                 if self._reparaciones:
                     informe["reparados"].append({**ident, "reparaciones": self._reparaciones})
+                if self._incidencias:
+                    informe.setdefault("incidencias", []).append({**ident, "incidencias": self._incidencias})
             except Rechazo as ex:
                 informe["rechazados"].append({**ident, "motivo": str(ex)})
         self.almacen.commit()
