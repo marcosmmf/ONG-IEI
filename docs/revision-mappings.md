@@ -13,17 +13,14 @@ El PDF del repositorio se encuentra en `docs/mappings/mappingsCV.pdf`.
 
 | # | Regla o aspecto | Qué hay en la fuente | Decisión y estado |
 |---|---|---|---|
-| 1 | R1, R9 y R14: identificadores y relación Entidad → Localidad | `id` y `cod_ine_mun` son identificadores de origen | ✅ `E.codigo_entidad` y `L.codigo` son automáticos. Buscar la localidad por nombre y provincia; reutilizar su código si existe o crearla si no existe. `E.localidad` (`cod_localidad` en SQL) referencia ese código, nunca el código INE. Ya implementado en el almacén. El `id` original se usa en el informe. |
 | 2 | R4: obtención del código postal | No hay CP | 🔴 **Toda entidad de CV cargada debe tener un CP válido.** Obtenerlo por geocodificación inversa de coordenadas fiables o por geocodificación directa de la dirección cuando las coordenadas sean genéricas. Validar cinco dígitos y coherencia con la provincia y la ubicación. Si no se consigue, rechazar e informar; no cargar con CP nulo ni asignar uno aproximado. Implementado en el extractor y en su validación específica de CV; comprobado con geocodificación simulada. La carga real requiere respuestas en caché o activar `--geo`. |
-| 3 | R3: dirección | 8 vacías; 3 de ellas comparten la coordenada genérica de València | 🔴 Copiar y limpiar `domici`. Si falta y las coordenadas son fiables, intentar recuperarla mediante geocodificación inversa. No usar el punto genérico para atribuir una dirección al centro. Si no se obtiene una dirección verificable, rechazar e informar. Implementada la recuperación; se rechazan los casos que no puedan resolverse. Pendiente comprobar cuántos recupera el servicio real. |
-| 4 | "Quitar FK L → P" | — | ✅ Era una fila sin sentido del documento antiguo, que ya está quitada. La BD mantiene `localidad.cod_provincia → provincia` (relación Localidad–Provincia del esquema global). No hay que cambiar nada. |
+
 | 5 | R11 y R12: provincia | `cod_ine_mun` conserva sus cinco caracteres; nombres como "València/Valencia" | ✅ Obtener `P.codigo` de los dos primeros caracteres del código INE y el nombre normalizado del catálogo `provincia`, común a las tres fuentes. Ya implementado. |
 | 6 | R5: coordenadas UTM → WGS84 | 32 centros de València comparten el punto genérico `(725733, 4372816)` | 🔴 La conversión utiliza el par `x_25830, y_25830` para obtener ambas coordenadas. Para el punto genérico, geolocalizar por dirección, municipio y provincia, si hay dirección disponible. No deducir CP ni dirección del punto genérico. Si no se consiguen coordenadas fiables, dejarlas nulas e informar; solo cargar si se dispone de dirección, CP válido y los demás campos obligatorios. El registro sin coordenadas no se mostrará en el mapa. Tratamiento implementado y comprobado con respuestas simuladas. Una respuesta directa que solo identifica el municipio también se rechaza. |
 | 7 | R7: contacto | `zero@gva.es` y 68 teléfonos con valor "0" | ✅ Omitir `zero@gva.es`, teléfonos "0" y valores vacíos o inválidos; concatenar los contactos válidos con ` / `. Si no queda ninguno, usar `NULL`. El tratamiento de "0" ya está implementado. |
-| 8 | R6: descripción | Ejemplo: "Entidad Privada - PERSONAS MAYORES" | 🟡 **Decidido: mantener `leyenda + " - " + sector`.** No sustituirlo por `tipo_centro`. Extractor adaptado a esta decisión. |
 | 9 | Duplicados | 30 filas repetidas (mismo nombre, domicilio y municipio) | ✅ La BD evita duplicados mediante `UNIQUE(nombre, direccion, cod_localidad)` y se contabilizan en el informe. Mantener este criterio documentado en el mapping. |
 | 10 | R13 y regla de ámbito sin correspondencia | Todos los sectores actuales tienen regla | ✅ Sin correspondencia, **rechazar e informar**, nunca asignar `NULL`: la BD exige ámbito. Este rechazo ya está implementado. |
-| 11 | Ámbito de `CLUBS DE CONVIVENCIA` | 3 registros con sector "POBLACIÓN EN GENERAL Y COLECTIVOS SOCIALMENTE DESFAVORECIDOS" | ✅ **Resuelto: `INCLUSION_SOCIAL` según el sector declarado.** Eliminada la excepción por tipo de centro. El mapping y el extractor coinciden; se comprueban la clasificación de los tres registros de la fuente y la carga con geocodificación simulada. |
+| 11 | Excepción de ámbito para `CLUBS DE CONVIVENCIA` | 3 registros con sector "POBLACIÓN EN GENERAL Y COLECTIVOS SOCIALMENTE DESFAVORECIDOS" | **Pendiente de decidir.** El mapping y el código actuales asignan `VOLUNTARIADO_Y_PARTICIPACION_COMUNITARIA` como correspondencia aproximada. Se ha propuesto usar `INCLUSION_SOCIAL` según el sector, pero esa propuesta no está acordada. No cambiar la excepción todavía. |
 
 Las reparaciones efectivas deben anotarse en el informe. Una consulta sin resultado no es una
 reparación: informar del rechazo si falta dirección o CP, o de la incidencia si el registro se carga
@@ -32,10 +29,6 @@ ni las restricciones compartidas de la BD. La obligatoriedad del CP se aplica en
 específica de CV. El informe incluye `incidencias` cuando hay registros cargados sin coordenadas
 fiables, separado de `reparados`. Las pruebas utilizan un geocoder simulado y SQLite en memoria;
 no verifican la disponibilidad ni la precisión del servicio web real.
-
-El wrapper de CV conserva los valores originales del CSV, incluidos espacios y ceros iniciales;
-la limpieza y las reglas semánticas se aplican en el extractor. La ejecución del módulo genera JSON
-en UTF-8. Queda pendiente verificar la geocodificación real con una muestra representativa.
 
 ## Catalunya (`mappings-CAT.docx`)
 
