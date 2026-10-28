@@ -53,7 +53,7 @@ no verifican la disponibilidad ni la precisión del servicio web real.
 | 2 | Municipio `_U` → "deducido (IA ¿?)" | 8 registros: su `municipio_id` es en realidad un CP (35003, 38111…) | 🔴 Sin localidad no se pueden cargar: provincia = CP[:2] y localidad sacada del scraper. Sin IA. |
 | 3 | CP y coordenadas con el scraper | No existen | 🔴 Esencial. Probado: la web devuelve calle + CP + coordenadas. |
 | 4 | nif para detectar duplicados | 51 nif repetidos | 🟡 Quedarse con el primero e informar del resto. |
-| 5 | Expandir abreviaturas (Avda → Avenida…) | 23 tipos de vía | ⚪ Estético; el scraper ya entiende "Avda". No merece la pena. |
+| 5 | Expandir abreviaturas (Avda → Avenida…) | 23 tipos de vía | ⚪ Estético; el scraper ya entiende "Avda". No merece la pena. | 
 
 ## Cambios hechos en la BD (`sql/schema.sql`)
 

@@ -6,18 +6,23 @@ Entrega 1: almacén de datos + wrappers + extractores de las tres fuentes
 ## Cómo funciona
 
 ```
-datos/cv/*.csv  ──► wrapper_cv  ──┐
-datos/cat/*.xml ──► wrapper_cat ──┼──► JSON ──► extractor_XX ──► almacen.db (SQLite)
-datos/can/*.json──► wrapper_can ──┘     (aplica mappings, repara, rechaza, informe)
-                                              │
-                                              └── geocoder (Selenium + caché)
+                    extractor_cv.py            extractor_cat.py           extractor_can.py
+datos/cv/*.csv   ─► wrapper() ─► JSON ─┐
+datos/cat/*.xml  ─► wrapper() ─► JSON ─┼─► ExtractorXX (aplica mappings, repara, rechaza, informe) ─► almacen.db (SQLite)
+datos/can/*.json ─► wrapper() ─► JSON ─┘                          │
+                                                                  └── geocoder (Selenium + caché)
 ```
 
-- **Wrapper** (`ong/wrappers/`): solo convierte el formato de la fuente (CSV/XML/JSON) a una lista JSON
-  con los campos *originales*. En la 2ª entrega cada wrapper será una API REST.
-- **Extractor** (`ong/extractores/`): aplica el mapping semántico de su fuente (documentos en
-  `docs/mappings/`) y devuelve una entidad del esquema global. La parte común (validar, insertar,
-  informe de cargados / reparados / rechazados / duplicados) está en `base.py`.
+Por indicación del profesor, en la 1ª entrega wrapper y extractor van **en el mismo archivo, uno por fuente**
+(`ong/extractores/extractor_{cv,cat,can}.py`). Cada archivo hace: 1) abrir el fichero, 2) convertir a JSON
+(`wrapper()`), 3) aplicar los mappings (`ExtractorXX`). Para ver solo el JSON del wrapper:
+`python -m ong.extractores.extractor_cv`.
+
+- **`wrapper()`**: solo convierte el formato de la fuente (CSV/XML/JSON) a una lista JSON con los campos
+  *originales*. En la 2ª entrega se separará y cada wrapper será una API REST.
+- **`ExtractorXX`**: aplica el mapping semántico de su fuente (documentos en `docs/mappings/`) y devuelve
+  una entidad del esquema global. La parte común (validar, insertar, informe de cargados / reparados /
+  rechazados / duplicados) está en `ong/extractores/base.py`.
 - **Geocoder** (`ong/comun/geocoder.py`): scraper con Selenium sobre coordenadas-gps.com, siguiendo
   el esquema del T07 (ir a la página → localizar elemento → `send_keys`/`click` → `WebDriverWait`).
   Las respuestas se guardan en `cache/geocache.json` (se sube al repo) para no repetir consultas.
@@ -43,6 +48,13 @@ python cargar.py can --geo --visible  # igual, pero viendo el navegador
 ```
 Cada carga deja en `salida/` el JSON del wrapper y el informe de la carga.
 Para ver la BD: `sqlite3 almacen.db` o DB Browser for SQLite.
+
+## Demo de la 1ª entrega
+
+El profesor quiere ver: (1) la base de datos **vacía**, (2) ejecutar la carga, (3) qué se ha llenado y cómo,
+y qué se ha rechazado. Por eso el **informe de la carga tiene que ser claro y legible** (cargados, reparados
+con antes/después y motivo, rechazados con motivo, duplicados). Hoy es solo `salida/*_informe.json`:
+pendiente mejorarlo (p. ej. resumen en consola y/o informe más legible) antes de la demo.
 
 ## Estado y reparto
 

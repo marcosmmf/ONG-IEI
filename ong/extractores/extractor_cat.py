@@ -1,10 +1,27 @@
-"""Extractor Catalunya (mapping: docs/mappings/mappings-CAT.docx).
+"""Wrapper + extractor de Catalunya (mapping: docs/mappings/mappings-CAT.docx).
+
+  1. wrapper():       abre el XML y lo convierte a JSON (solo cambia el formato, sin mappings).
+                      En la 2a entrega se separará y se expondrá como API REST.
+  2. ExtractorCAT:    aplica el mapping al esquema global, repara / rechaza y carga el almacén.
 
 ESQUELETO: hace lo básico para que la carga funcione. Lo marcado con TODO es
 el trabajo pendiente para repartir.
 """
+import json
+import sys
+import xml.etree.ElementTree as ET
+from pathlib import Path
+
 from ong.comun import normalizar as N
 from ong.extractores.base import Extractor, Rechazo
+
+FICHERO = Path(__file__).resolve().parents[2] / "datos" / "cat" / "Entitats_ONGD_pretty.xml"
+
+
+def wrapper(ruta=FICHERO):
+    """XML -> lista de dicts: cada <entitat> es {etiqueta: texto}; las etiquetas vacías (<web/>) quedan como ""."""
+    raiz = ET.parse(ruta).getroot()
+    return [{campo.tag: (campo.text or "").strip() for campo in entitat} for entitat in raiz.iter("entitat")]
 
 
 def clasificar_ambito(r):
@@ -49,3 +66,7 @@ class ExtractorCAT(Extractor):
             "localidad": localidad,
             "cod_provincia": codigo_postal[:2],          # diccionario CP -> provincia = tabla provincia
         }
+
+
+if __name__ == "__main__":
+    json.dump(wrapper(*sys.argv[1:2]), sys.stdout, ensure_ascii=False, indent=2)

@@ -1,10 +1,27 @@
-"""Extractor Canarias (mapping: docs/mappings/mappings-CAN.docx).
+"""Wrapper + extractor de Canarias (mapping: docs/mappings/mappings-CAN.docx).
+
+  1. wrapper():       abre el fichero (ya es JSON, aunque se llame "csv") y limpia espacios.
+                      En la 2a entrega se separará y se expondrá como API REST.
+  2. ExtractorCAN:    aplica el mapping al esquema global, repara / rechaza y carga el almacén.
 
 ESQUELETO: hace lo básico para que la carga funcione. Lo marcado con TODO es
 el trabajo pendiente para repartir.
 """
+import json
+import sys
+from pathlib import Path
+
 from ong.comun import normalizar as N
 from ong.extractores.base import Extractor, Rechazo
+
+FICHERO = Path(__file__).resolve().parents[2] / "datos" / "can" / "datos-abiertos-csv-segundo-trimestre26.json"
+
+
+def wrapper(ruta=FICHERO):
+    """JSON -> lista de dicts con los mismos campos que la fuente."""
+    with open(ruta, encoding="utf-8-sig") as f:
+        datos = json.load(f)
+    return [{k: (v.strip() if isinstance(v, str) else v) for k, v in d.items()} for d in datos]
 
 # Anexo del mapping: (area_id, subarea_id) -> ámbito. None = cualquier subárea
 AMBITO_POR_AREA = {
@@ -70,3 +87,7 @@ class ExtractorCAN(Extractor):
             "localidad": localidad or None,
             "cod_provincia": cod_provincia,
         }
+
+
+if __name__ == "__main__":
+    json.dump(wrapper(*sys.argv[1:2]), sys.stdout, ensure_ascii=False, indent=2)

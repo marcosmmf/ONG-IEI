@@ -12,15 +12,12 @@ from pathlib import Path
 
 from ong.comun.almacen import Almacen
 from ong.comun.geocoder import Geocoder
-from ong.extractores.extractor_can import ExtractorCAN
-from ong.extractores.extractor_cat import ExtractorCAT
-from ong.extractores.extractor_cv import ExtractorCV
-from ong.wrappers import wrapper_can, wrapper_cat, wrapper_cv
+from ong.extractores import extractor_can, extractor_cat, extractor_cv
 
 FUENTES = {
-    "cv": (wrapper_cv, ExtractorCV),
-    "cat": (wrapper_cat, ExtractorCAT),
-    "can": (wrapper_can, ExtractorCAN),
+    "cv": (extractor_cv.wrapper, extractor_cv.ExtractorCV),
+    "cat": (extractor_cat.wrapper, extractor_cat.ExtractorCAT),
+    "can": (extractor_can.wrapper, extractor_can.ExtractorCAN),
 }
 SALIDA = Path(__file__).parent / "salida"
 
@@ -44,7 +41,7 @@ def main():
     try:
         for nombre in fuentes:
             wrapper, Extractor = FUENTES[nombre]
-            registros = wrapper.leer()                                   # 1) wrapper: fuente -> JSON
+            registros = wrapper()                                        # 1) wrapper: fuente -> JSON
             (SALIDA / f"{nombre}_wrapper.json").write_text(
                 json.dumps(registros, ensure_ascii=False, indent=2), encoding="utf-8")
 
