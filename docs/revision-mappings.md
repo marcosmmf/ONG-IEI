@@ -11,11 +11,12 @@ Leyenda: 🔴 esencial · 🟡 recomendable/barato · ⚪ opcional.
 ## Comunitat Valenciana (`docs/mappings/mappingsCV.pdf`)
 
 El contenido del mapping está actualizado y el wrapper/extractor está adaptado.
-Las pruebas automatizadas utilizan geocodificación simulada; falta lo siguiente:
+Las pruebas automatizadas utilizan geocodificación simulada. Ya se ha realizado una prueba real
+de ocho registros, incluidos los cinco iniciales y casos especiales; falta lo siguiente:
 
 | Prioridad | Pendiente | Qué comprobar o corregir |
 |---|---|---|
-| 🔴 | Probar la geocodificación real | Usar una muestra con registros normales, direcciones vacías y el punto genérico de València. Verificar CP de cinco dígitos coherentes con provincia y ubicación; recuperación de direcciones solo desde coordenadas fiables; geocodificación directa cuando el punto sea genérico. Comprobar los rechazos si no se obtiene dirección o CP válido y las incidencias cuando falten coordenadas fiables. |
+| 🔴 | Ampliar la prueba de geocodificación real | Probar más direcciones vacías y centros con el punto genérico de València, incluido un caso que pueda recuperarse mediante geocodificación directa. Verificar que el resultado corresponda al centro y no solo al municipio o provincia. Revisar reparaciones, rechazos e incidencias; la muestra inicial no valida los 1.697 registros. |
 | ⚪ | Presentación del mapping | Eliminar la página 3 vacía y actualizar o retirar el bloque final «Después faltaría», que enumera tareas ya implementadas. |
 
 ## Catalunya (`docs/mappings/mappings-CAT.docx`)
