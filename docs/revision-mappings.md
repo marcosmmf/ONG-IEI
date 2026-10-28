@@ -23,7 +23,7 @@ El PDF del repositorio se encuentra en `docs/mappings/mappingsCV.pdf`.
 | 8 | R6: descripción | Ejemplo: "Entidad Privada - PERSONAS MAYORES" | 🟡 **Decidido: mantener `leyenda + " - " + sector`.** No sustituirlo por `tipo_centro`. Extractor adaptado a esta decisión. |
 | 9 | Duplicados | 30 filas repetidas (mismo nombre, domicilio y municipio) | ✅ La BD evita duplicados mediante `UNIQUE(nombre, direccion, cod_localidad)` y se contabilizan en el informe. Mantener este criterio documentado en el mapping. |
 | 10 | R13 y regla de ámbito sin correspondencia | Todos los sectores actuales tienen regla | ✅ Sin correspondencia, **rechazar e informar**, nunca asignar `NULL`: la BD exige ámbito. Este rechazo ya está implementado. |
-| 11 | Excepción de ámbito para `CLUBS DE CONVIVENCIA` | 3 registros con sector "POBLACIÓN EN GENERAL Y COLECTIVOS SOCIALMENTE DESFAVORECIDOS" | **Pendiente de decidir.** El mapping y el código actuales asignan `VOLUNTARIADO_Y_PARTICIPACION_COMUNITARIA` como correspondencia aproximada. Se ha propuesto usar `INCLUSION_SOCIAL` según el sector, pero esa propuesta no está acordada. No cambiar la excepción todavía. |
+| 11 | Ámbito de `CLUBS DE CONVIVENCIA` | 3 registros con sector "POBLACIÓN EN GENERAL Y COLECTIVOS SOCIALMENTE DESFAVORECIDOS" | ✅ **Resuelto: `INCLUSION_SOCIAL` según el sector declarado.** Eliminada la excepción por tipo de centro. El mapping y el extractor coinciden; se comprueban la clasificación de los tres registros de la fuente y la carga con geocodificación simulada. |
 
 Las reparaciones efectivas deben anotarse en el informe. Una consulta sin resultado no es una
 reparación: informar del rechazo si falta dirección o CP, o de la incidencia si el registro se carga
@@ -32,6 +32,10 @@ ni las restricciones compartidas de la BD. La obligatoriedad del CP se aplica en
 específica de CV. El informe incluye `incidencias` cuando hay registros cargados sin coordenadas
 fiables, separado de `reparados`. Las pruebas utilizan un geocoder simulado y SQLite en memoria;
 no verifican la disponibilidad ni la precisión del servicio web real.
+
+El wrapper de CV conserva los valores originales del CSV, incluidos espacios y ceros iniciales;
+la limpieza y las reglas semánticas se aplican en el extractor. La ejecución del módulo genera JSON
+en UTF-8. Queda pendiente verificar la geocodificación real con una muestra representativa.
 
 ## Catalunya (`mappings-CAT.docx`)
 

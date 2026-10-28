@@ -23,16 +23,16 @@ FICHERO = Path(__file__).resolve().parents[2] / "datos" / "cv" / "entidades_CV.c
 
 
 def wrapper(ruta=FICHERO):
-    """CSV -> lista de dicts con los mismos campos que la fuente."""
+    """CSV -> lista de dicts, conservando los campos y valores originales."""
     with open(ruta, encoding="utf-8-sig", newline="") as f:
-        return [{k.strip(): (v or "").strip() for k, v in fila.items()} for fila in csv.DictReader(f)]
+        return list(csv.DictReader(f))
 
 
 # Reglas de ámbito del mapping, en orden: primero tipo_centro (más específico), luego sector
 AMBITO_POR_TIPO_CENTRO = {
     "TALLER PRELABORAL DE INSERCIÓN SOCIAL": "EMPLEO_E_INSERCION_LABORAL",
-    "CLUBS DE CONVIVENCIA": "VOLUNTARIADO_Y_PARTICIPACION_COMUNITARIA",
 }
+# Los clubs de convivencia se clasifican por su sector como INCLUSION_SOCIAL.
 AMBITO_POR_SECTOR = {
     "PERSONAS MAYORES": "MAYORES",
     "PERSONAS CON DISCAPACIDAD": "DISCAPACIDAD",
@@ -178,4 +178,5 @@ class ExtractorCV(Extractor):
 
 
 if __name__ == "__main__":
+    sys.stdout.reconfigure(encoding="utf-8")
     json.dump(wrapper(*sys.argv[1:2]), sys.stdout, ensure_ascii=False, indent=2)
