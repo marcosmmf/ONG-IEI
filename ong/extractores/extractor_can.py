@@ -4,10 +4,11 @@
                       En la 2a entrega se separará y se expondrá como API REST.
   2. ExtractorCAN:    aplica el mapping al esquema global, repara / rechaza y carga el almacén.
 
-ESQUELETO: hace lo básico para que la carga funcione. Lo marcado con TODO es
-el trabajo pendiente para repartir.
+La fuente no tiene CP ni coordenadas: se obtienen con Selenium a partir de la
+dirección completa. Decisiones explicadas en docs/revision-mappings.md (Canarias).
 """
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -22,6 +23,7 @@ def wrapper(ruta=FICHERO):
     with open(ruta, encoding="utf-8-sig") as f:
         datos = json.load(f)
     return [{k: (v.strip() if isinstance(v, str) else v) for k, v in d.items()} for d in datos]
+
 
 # Anexo del mapping: (area_id, subarea_id) -> ámbito. None = cualquier subárea
 AMBITO_POR_AREA = {
@@ -45,6 +47,64 @@ AMBITO_POR_AREA = {
     ("09", None): "VOLUNTARIADO_Y_PARTICIPACION_COMUNITARIA",
 }
 
+# Tipos de vía tal como aparecen en la fuente (en minúsculas) -> nombre completo
+TIPOS_VIA = {
+    "calle": "Calle", "c/": "Calle", "cl": "Calle",
+    "avenida": "Avenida", "avda": "Avenida", "av": "Avenida",
+    "carretera": "Carretera", "ctra": "Carretera", "carre": "Carretera",
+    "camino": "Camino", "cmno": "Camino",
+    "rambla": "Rambla", "rbla": "Rambla",
+    "travesia": "Travesía", "trva": "Travesía",
+    "subida": "Subida", "sbida": "Subida",
+    "urb": "Urbanización", "psaje": "Pasaje", "pque": "Parque", "custa": "Cuesta",
+    "muell": "Muelle", "barda": "Barriada", "disem": "Diseminado", "branc": "Barranco",
+    "plaza": "Plaza", "paseo": "Paseo", "lugar": "Lugar", "loma": "Loma", "zona": "Zona", "senda": "Senda",
+}
+
+
+def separar_tipo(nombre_via):
+    """Si el nombre ya empieza por un tipo de vía, lo separa:
+    'C/ Doctor Verneau' -> ('Calle', 'Doctor Verneau');  'Lomo La Plana' -> (None, 'Lomo La Plana')."""
+    m = re.match(r"\W*(\w+)([./]?)[\s./]*(.*)", nombre_via)
+    if not m or not m.group(3):
+        return None, nombre_via
+    clave = m.group(1).lower() + ("/" if m.group(2) == "/" else "")
+    if clave in TIPOS_VIA:
+        return TIPOS_VIA[clave], m.group(3)
+    return None, nombre_via
+
+
+def montar_direccion(r):
+    """Junta tipo, nombre, número y complemento sin repetir nada.
+    Devuelve (dirección para guardar, dirección para Selenium)."""
+    nombre_via = N.limpiar(r["direccion_nombre_via"])
+    if not nombre_via:
+        raise Rechazo("falta la dirección")
+
+    tipo_en_nombre, nombre_via = separar_tipo(nombre_via)
+    tipo = N.limpiar(r["direccion_tipo_via"])
+    if tipo_en_nombre:
+        tipo = tipo_en_nombre
+    elif tipo:
+        tipo = TIPOS_VIA.get(tipo.lower().rstrip("."), tipo)
+    calle = f"{tipo} {nombre_via}" if tipo else nombre_via
+
+    numero = N.limpiar(r["direccion_numero"])
+    if numero and re.search(rf"\b{re.escape(numero)}(?!\w)", nombre_via, re.IGNORECASE):
+        numero = None                                   # ya viene dentro del nombre
+    if numero and numero.lower().rstrip(".") == "s/n":
+        para_guardar, para_selenium = f"{calle} s/n", calle
+    elif numero:
+        para_guardar = para_selenium = f"{calle} {numero}"
+    else:
+        para_guardar = para_selenium = calle
+
+    complemento = N.limpiar(r["direccion_complemento"])
+    if complemento and re.search(r"\w", complemento):          # descarta rellenos como "- - - -"
+        para_guardar = f"{para_guardar}, {complemento}"
+    para_selenium = N.limpiar(re.sub(r"\(.*?\)", "", para_selenium)) or para_selenium   # los paréntesis le confunden
+    return para_guardar, para_selenium
+
 
 class ExtractorCAN(Extractor):
     FUENTE = "CAN"
@@ -52,41 +112,84 @@ class ExtractorCAN(Extractor):
     def id_origen(self, r):
         return r.get("numero_registro")
 
+    def nombre_origen(self, r):
+        return N.limpiar(r.get("denominacion"))
+
     def transformar(self, r):
         area, subarea = r["area_id"], r["subarea_id"]
         ambito = AMBITO_POR_AREA.get((area, subarea)) or AMBITO_POR_AREA.get((area, None))
         if not ambito:
             raise Rechazo(f"área/subárea sin correspondencia: {area}/{subarea}")
 
-        # TODO: expandir abreviaturas (Avda -> Avenida...) y no repetir tipo/número si ya están en el nombre
-        direccion = N.limpiar(" ".join(x for x in (r["direccion_tipo_via"], r["direccion_nombre_via"],
-                                                   r["direccion_numero"]) if not N.vacio(x)))
+        localidad = self.municipio(r["direccion_municipio_nombre"])
+        provincia = r["direccion_provincia_id"]
+        if provincia not in self.almacen.provincias:
+            raise Rechazo(f"provincia no válida: {provincia!r}")
 
-        localidad = N.reordenar_articulo(N.limpiar(r["direccion_municipio_nombre"]) or "")
-        cod_provincia = r["direccion_provincia_id"]
-        # TODO: 8 registros con municipio/provincia "_U": su municipio_id es en realidad un CP
-        #       -> cod_provincia = CP[:2] y localidad sacada del geocoder
-
-        # TODO: CP y coordenadas con el scraper:
-        #       res = self.geocoder.directo(f"{direccion}, {localidad}, España")
-        #       -> res["cp"], res["lat"], res["lon"]  (comprobar que el CP es de la provincia)
-
-        # TODO: duplicados por nif (51 entidades repetidas)
-        # TODO: reparar web con N.url ("wwwadepsi.org", "hhtps://"...)
+        direccion, direccion_selenium = montar_direccion(r)
+        cp, latitud, longitud = self.geolocalizar(direccion_selenium, localidad, provincia)
 
         return {
             "nombre": N.limpiar(r["denominacion"]),
             "ambito": ambito,
             "direccion": direccion,
-            "codigo_postal": None,
-            "latitud": None,
-            "longitud": None,
+            "codigo_postal": cp,
+            "latitud": latitud,
+            "longitud": longitud,
             "descripcion": N.limpiar(r["subarea_nombre"]) or N.limpiar(r["area_nombre"]),
-            "contacto": N.unir_contacto(N.telefono(r["telefono_1"]), N.telefono(r["telefono_2"])),
-            "url": N.limpiar(r["pagina_web"]),
-            "localidad": localidad or None,
-            "cod_provincia": cod_provincia,
+            "contacto": N.unir_contacto(self.telefono(r["telefono_1"]), self.telefono(r["telefono_2"])),
+            "url": self.web(r["pagina_web"]),
+            "localidad": localidad,
+            "cod_provincia": cp[:2],
         }
+
+    def municipio(self, valor):
+        """'Palmas de Gran Canaria (Las)' -> 'Las Palmas de Gran Canaria';  'Oliva La' -> 'La Oliva'."""
+        if N.vacio(valor):
+            raise Rechazo("municipio desconocido")
+        nombre = N.reordenar_articulo(N.limpiar(valor))
+        m = re.fullmatch(r"(.+) (La|El|Los|Las)", nombre)
+        if m:
+            nombre = f"{m.group(2)} {m.group(1)}"
+            self.reparado("localidad", valor, nombre, "artículo al final")
+        return nombre
+
+    def geolocalizar(self, direccion, localidad, provincia):
+        """Pregunta a Selenium por la dirección completa. Solo se acepta si devuelve
+        un CP de la misma provincia que dice la fuente; si no, se rechaza."""
+        nombre_provincia = self.almacen.provincias[provincia]
+        if N.sin_tildes(nombre_provincia) == N.sin_tildes(localidad):     # "Madrid, Madrid" le confunde
+            consulta = f"{direccion}, {localidad}, España"
+        else:
+            consulta = f"{direccion}, {localidad}, {nombre_provincia}, España"
+        resultado = self.geocoder.directo(consulta)
+        if not resultado or not resultado["cp"]:
+            raise Rechazo("no se pudo obtener el código postal de la dirección")
+        if resultado["cp"][:2] != provincia:
+            raise Rechazo(f"el código postal obtenido ({resultado['cp']}) no es de la provincia {provincia}")
+        return resultado["cp"], resultado["lat"], resultado["lon"]
+
+    def telefono(self, valor):
+        """'(34)928414484' -> '928414484'. Si no es un teléfono válido, se deja vacío y se avisa."""
+        if N.vacio(valor):
+            return None
+        numero = N.telefono(valor.replace("(34)", "", 1))
+        if not numero:
+            self.incidencia("contacto", f"teléfono no válido: {valor}")
+        elif "+34" in valor:
+            self.reparado("contacto", valor, numero, "prefijo +34 repetido")
+        return numero
+
+    def web(self, valor):
+        """Arregla la web ('wwwadepsi.org' -> 'https://www.adepsi.org'). Si no es una web, vacío y aviso."""
+        if N.vacio(valor):
+            return None
+        web = N.url(valor)
+        if not web:
+            self.incidencia("url", f"no es una web: {valor}")
+        elif valor.lower().strip("/") not in web.lower():
+            self.reparado("url", valor, web, "web mal escrita")
+        return web
 
 
 if __name__ == "__main__":
