@@ -50,7 +50,8 @@ def main():
                 json.dumps(informe, ensure_ascii=False, indent=2), encoding="utf-8")
             print(f"{informe['fuente']:>3}: leídos {informe['leidos']}, cargados {informe['cargados']}, "
                   f"reparados {len(informe['reparados'])}, rechazados {len(informe['rechazados'])}, "
-                  f"duplicados {informe['duplicados']}   -> salida/{nombre}_informe.json")
+                  f"duplicados {informe['duplicados']}, avisos {len(informe.get('incidencias', []))}"
+                  f"   -> salida/{nombre}_informe.json")
     finally:
         geocoder.cerrar()
         almacen.cerrar()

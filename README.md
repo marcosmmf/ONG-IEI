@@ -86,7 +86,7 @@ Busca `TODO` en `ong/extractores/` para ver qué falta. Resultado actual (sin ge
 |---|---|---|---|---|---|
 | CV  | 1697 | 1659 | 8 (sin dirección) | 30 | CP por geocodificación inversa |
 | CAT | 765  | 764  | 1 (CP 00800)      | 0  | coordenadas, ámbito con IA |
-| CAN | 810  | 740  | 8 (municipio `_U`) | 62 | CP y coordenadas |
+| CAN | 810  | —    | —                  | —  | hecho; falta llenar la caché con `--geo` |
 
 Propuesta de reparto:
 

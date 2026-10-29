@@ -36,6 +36,9 @@ class ExtractorCAT(Extractor):
     def id_origen(self, r):
         return r.get("n_mero_registre")
 
+    def nombre_origen(self, r):
+        return N.limpiar(r.get("nom_de_l_entitat"))
+
     def transformar(self, r):
         # El XML viene sin espacios: "SantCugatdelVallès" -> "Sant Cugat del Vallès"
         localidad = N.reordenar_articulo(N.separar_toponimo(r["municipi"]))

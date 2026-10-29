@@ -1,1 +1,45 @@
-{}
+{
+ "D|PZA.DE LA IGLESIA, 2, Los Montesinos, Alicante/Alacant, España": null,
+ "I|37.978437,-0.788926": {
+  "lat": "37.978437",
+  "lon": "-0.788926",
+  "direccion": "Calle Diecinueve De Abril, 26, 03193 San Miguel De Salinas, España"
+ },
+ "D|VICENTE BLASCO IBAÑEZ, 1, San Miguel de Salinas, Alicante/Alacant, España": null,
+ "I|38.345937,-0.507944": {
+  "lat": "38.345937",
+  "lon": "-0.507944",
+  "direccion": "Calle Cisne, 3, 03006 Alicante/alacant, España"
+ },
+ "D|CISNE, 3, Alacant/Alicante, Alicante/Alacant, España": null,
+ "I|39.483098,-0.360827": {
+  "lat": "39.483098",
+  "lon": "-0.360827",
+  "direccion": "Calle de Cuenca de Tramoyeres, 5, 46020 Valencia, España"
+ },
+ "D|CUENCA TRAMOYERES, 5-1, València, Valencia/València, España": {
+  "lat": "39.4830868",
+  "lon": "-0.3608245",
+  "direccion": "Calle de Cuenca de Tramoyeres, 5, 46020 Valencia, España"
+ },
+ "I|38.252774,-0.704165": {
+  "lat": "38.252774",
+  "lon": "-0.704165",
+  "direccion": "Centro Sociocultural Pla-Sector V, Avenida Alcalde Ramón Pastor, 1, 03204 Elche, España"
+ },
+ "I|38.027297,-0.743485": {
+  "lat": "38.027297",
+  "lon": "-0.743485",
+  "direccion": "Plaza del Sagrado Corazón, 7, 03187 Los Montesinos, España"
+ },
+ "I|38.967370,-0.179419": {
+  "lat": "38.96737",
+  "lon": "-0.179419",
+  "direccion": "Calle Pare Gomar, 6, 46701 Gandia, España"
+ },
+ "D|C/ SANTOS DE LA PIEDRA, 14 DE CARPESA, València, Valencia/València, España": {
+  "lat": "39.8773741",
+  "lon": "-0.5070717",
+  "direccion": "Calle Santos de la Piedra, 12470 Navajas, España"
+ }
+}

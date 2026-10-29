@@ -51,6 +51,9 @@ class ExtractorCV(Extractor):
     def id_origen(self, r):
         return r.get("id")
 
+    def nombre_origen(self, r):
+        return N.limpiar(r.get("nombre"))
+
     @staticmethod
     def _coordenadas(lat, lon):
         try:
