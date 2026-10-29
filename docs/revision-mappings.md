@@ -49,11 +49,26 @@ no verifican la disponibilidad ni la precisión del servicio web real.
 
 | # | Qué dice el mapping | Qué hay en la fuente | Propuesta |
 |---|---|---|---|
-| 1 | `P.codigo ←` "Dirección completa" | `direccion_provincia_id` existe | 🟡 Corregir el documento: `P.codigo ← direccion_provincia_id`; si es `_U`, los 2 primeros dígitos del CP. |
-| 2 | Municipio `_U` → "deducido (IA ¿?)" | 8 registros: su `municipio_id` es en realidad un CP (35003, 38111…) | 🔴 Sin localidad no se pueden cargar: provincia = CP[:2] y localidad sacada del scraper. Sin IA. |
-| 3 | CP y coordenadas con el scraper | No existen | 🔴 Esencial. Probado: la web devuelve calle + CP + coordenadas. |
-| 4 | nif para detectar duplicados | 51 nif repetidos | 🟡 Quedarse con el primero e informar del resto. |
-| 5 | Expandir abreviaturas (Avda → Avenida…) | 23 tipos de vía | ⚪ Estético; el scraper ya entiende "Avda". No merece la pena. | 
+| 1 | `P.codigo ←` "Dirección completa" (corrección del profe) | `direccion_provincia_id` existe | ✅ **Decidido:** `P.codigo` = 2 primeros dígitos del CP que devuelve Selenium, que debe coincidir con `direccion_provincia_id` (ver #3). |
+| 2 | Municipio `_U` → "deducido (IA ¿?)" | 8 registros: su `municipio_id` es en realidad un CP (35003, 38111…) | ✅ **Decidido:** rechazar e informar ("municipio desconocido"), sin consultar a Selenium. Sin IA. |
+| 3 | CP y coordenadas con Selenium (corrección del profe) | No existen | ✅ **Decidido:** consultar a Selenium con la dirección completa (`tipo vía + nombre + número, municipio, provincia, España`). Se acepta solo si devuelve un CP cuyos 2 primeros dígitos coinciden con `direccion_provincia_id`; entonces se guardan CP, latitud y longitud. Si no devuelve CP o es de otra provincia → rechazar e informar ("no se pudo obtener el código postal"). No se compara el nombre del municipio (limitación asumida: no detecta una calle homónima en otro municipio de la misma provincia). |
+| 3b | `L.codigo` ← código INE (corrección del profe) | — | ✅ Autonumérico en las 3 fuentes; quitar la tabla INE del documento. |
+| 4 | nif para detectar duplicados | 810 filas y 745 nif distintos (misma entidad en varias áreas) | ✅ **Decidido (indicación del profe):** no se depura la fuente antes de cargar. Los duplicados se detectan después del mapping, justo antes de insertar: si ya existe una entidad con el mismo nombre, dirección y localidad, no se inserta y se informa como duplicada (ya implementado con `UNIQUE(nombre, direccion, cod_localidad)`). No se usa el nif porque no está en el esquema global. Limitación asumida: un mismo nif con direcciones distintas se carga como sedes distintas. |
+| 5 | Dirección: concatenar y expandir abreviaturas (Avda → Avenida…) | 23 tipos de vía (algunos raros: Carre, Sbida, Branc…); ~100 nombres que ya incluyen el tipo y ~13 que ya incluyen el número | ✅ **Decidido:** expandir abreviaturas con una tabla; no repetir el tipo si el nombre ya empieza por él, ni el número si ya está en el nombre. Se guarda `tipo + nombre + número + complemento`. A Selenium se le pasa sin complemento y sin número si es "S/n". |
+| 6 | Contacto: quitar "(34)", solo dígitos, unir con " / " | 7 entidades sin teléfono válido: 1 con prefijo doble `(34)+34650393946`, 6 con dígitos de más o de menos (`(34)6`) | ✅ **Decidido:** reparar el prefijo doble (→ `650393946`) e informar como reparado. Los otros 6: contacto vacío, la entidad se carga igual y se informa como incidencia ("teléfono no válido"). No se rechaza: el teléfono no es obligatorio. |
+| 7 | URL: reparar con `N.url` | 191 webs; las reparables (`wwwadepsi.org`, `www. raiz…`, `hhtps://`) ya se arreglan; 3 con tilde o ñ (`www.acciónaborigen.com` ×2, `asociacionacompañame.com`) se pierden | ✅ **Decidido:** aceptar dominios con tilde o ñ. Las 5 que no son webs (texto libre, email, "facebook: …") → vacío; la entidad se carga igual y se informa como incidencia. Las reparadas se informan con antes/después. |
+| 8 | `L.nombre`: reordenar artículo | `Palmas de Gran Canaria (Las)` ya se arregla; `Oliva La` (6, sin paréntesis) no; CAN escribe "Valencia" y CV "València" | ✅ **Decidido:** reparar `Oliva La` → `La Oliva` e informarlo. Además, en `Almacen.localidad()` (común a las 3 fuentes) buscar la localidad comparando el nombre sin tildes ni mayúsculas, para que el mismo municipio escrito distinto en dos fuentes sea una sola localidad (se queda el nombre del primero que se cargó). **Avisar al resto del equipo**: afecta a CV y CAT. |
+| 9 | `E.descripcion` ← subárea, o área si la subárea es `_U` (comentario en rojo: "opcional dejar NULL") | Siempre hay área | ✅ **Decidido:** mantener la regla (ya implementada) y borrar el comentario en rojo del Word. |
+
+**Estado:** las decisiones 1-9 están implementadas en `ong/extractores/extractor_can.py` (y la 8 en
+`Almacen.localidad()`). Falta rellenar la caché con `python cargar.py can --geo` (unos 20 min). Prueba
+real con los 20 primeros registros: 17 cargados y 3 rechazados porque Selenium solo devolvió el
+municipio (direcciones con añadidos como "Garagonay - Sardina Del Sur"). Prueba con 50 registros aleatorios: 36 cargados y 14 rechazados (13 porque
+Selenium no encuentra la calle, 1 por municipio `_U`); 2 de los cargados quedan en otro municipio
+de la misma provincia (Arona y Puerto de la Cruz en vez de Santa Cruz de Tenerife).
+**Pendiente de consultar al profe:** con la regla actual se rechaza ~1 de cada 4 entidades (~200 de
+810). Alternativa: cargarlas sin CP ni coordenadas y con un aviso en el informe. También se rechaza 1 registro cuyo nombre de vía es literalmente "Null".
+Pendiente: actualizar el Word.
 
 ## Cambios hechos en la BD (`sql/schema.sql`)
 
