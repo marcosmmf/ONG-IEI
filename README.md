@@ -59,7 +59,7 @@ catalanas mediante Gemini Flash. Lee automáticamente las variables del archivo
 
 ```text
 GEMINI_API_KEY=tu-clave-nueva
-GEMINI_MODEL=gemini-2.5-flash
+GEMINI_MODEL=gemini-3.8-flash
 ```
 
 El archivo `.env` está excluido de Git y no debe compartirse. Se incluye

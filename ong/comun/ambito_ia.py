@@ -13,7 +13,7 @@ from dotenv import load_dotenv
 
 RAIZ = Path(__file__).resolve().parents[2]
 CACHE_POR_DEFECTO = RAIZ / "cache" / "ambito_cache.json"
-MODELO_POR_DEFECTO = "gemini-2.5-flash"
+MODELO_POR_DEFECTO = "gemini-3.8-flash"
 load_dotenv(RAIZ / ".env")
 
 
