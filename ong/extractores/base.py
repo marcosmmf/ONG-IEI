@@ -38,6 +38,10 @@ class Extractor:
         """Identificador del registro en la fuente, solo para el informe."""
         return None
 
+    def nombre_origen(self, registro):
+        """Nombre de la entidad en la fuente, para que los rechazados del informe se entiendan."""
+        return None
+
     # ------------------------------------------------------------- utilidades
     def reparado(self, campo, antes, despues, motivo=""):
         """Anota una reparación en el informe del registro actual."""
@@ -56,10 +60,10 @@ class Extractor:
             informe["leidos"] += 1
             self._reparaciones = []
             self._incidencias = []
-            ident = {"id_origen": self.id_origen(registro)}
+            ident = {"id_origen": self.id_origen(registro), "nombre": self.nombre_origen(registro)}
             try:
                 e = self.transformar(registro)
-                ident["nombre"] = e.get("nombre")
+                ident["nombre"] = e.get("nombre") or ident["nombre"]
                 self._validar(e)
                 if not self.almacen.insertar_entidad(e, self.FUENTE):
                     informe["duplicados"] += 1

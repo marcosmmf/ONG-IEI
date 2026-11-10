@@ -10,6 +10,7 @@ Todas las respuestas se guardan en cache/geocache.json: la web solo se consulta 
 primera vez; las cargas siguientes (y la demo) salen de la caché.
 """
 import json
+import math
 import re
 import time
 from pathlib import Path
@@ -22,7 +23,8 @@ from selenium.webdriver.support.ui import WebDriverWait
 
 URL = "https://www.coordenadas-gps.com/"
 CACHE = Path(__file__).resolve().parents[2] / "cache" / "geocache.json"
-ESPERA_MAX = 8          # segundos esperando a que la web responda
+ESPERA_MAX = 15         # segundos esperando la respuesta de una consulta
+ESPERA_INICIO = 30      # la primera carga del mapa puede tardar más
 PAUSA = 1.0             # entre consultas, para no saturar la web
 
 
@@ -58,10 +60,19 @@ class Geocoder:
         return self._con_cache(f"I|{lat:.6f},{lon:.6f}", lambda: self._buscar_direccion(lat, lon))
 
     def cerrar(self):
-        self._guardar()
+        try:
+            self._guardar()
+        finally:
+            self._cerrar_navegador()
+
+    def _cerrar_navegador(self):
         if self.driver:
-            self.driver.quit()
-            self.driver = None
+            try:
+                self.driver.quit()
+            except WebDriverException:
+                pass
+            finally:
+                self.driver = None
 
     # ============================================================ Selenium
     def _abrir(self):
@@ -80,7 +91,8 @@ class Geocoder:
         # La web solo crea su mapa cuando se ve en pantalla, y sin mapa no da resultados
         mapa = self.driver.find_element(By.ID, "map_canvas")
         self.driver.execute_script("arguments[0].scrollIntoView();", mapa)
-        self.espera.until(lambda d: d.execute_script("return typeof gl_map !== 'undefined'"))
+        WebDriverWait(self.driver, ESPERA_INICIO).until(
+            lambda d: d.execute_script("return typeof gl_map !== 'undefined' && gl_map !== null"))
 
     def _cerrar_banner_cookies(self):
         """Rechaza las cookies no esenciales: 'Gestionar opciones' -> 'Confirmar opciones'."""
@@ -106,10 +118,8 @@ class Geocoder:
 
     def _esperar_respuesta(self, condicion):
         """(4) Esperar a que la web conteste. Si no encuentra nada saca un alert()."""
-        try:
-            self.espera.until(lambda d: EC.alert_is_present()(d) or condicion(d))
-        except TimeoutException:
-            return None
+        # El timeout debe llegar a _con_cache para reintentar y no guardarse como fallo definitivo.
+        self.espera.until(lambda d: EC.alert_is_present()(d) or condicion(d))
         try:
             self.driver.switch_to.alert.accept()            # "Error de geolocalización"
             return None
@@ -120,11 +130,13 @@ class Geocoder:
 
     def _buscar_coordenadas(self, direccion):
         self._escribir("latitude", "")                      # vacío: así sabemos cuándo llega la respuesta
+        self._escribir("longitude", "")
         self._escribir("address", direccion)
         self._pulsar("Obtener Coordenadas GPS")
         valor = lambda d, i: d.find_element(By.ID, i).get_attribute("value")
         # La web reescribe el campo 'address' con la dirección completa (con CP) y rellena lat/long
-        return self._esperar_respuesta(lambda d: valor(d, "latitude") and valor(d, "address") != direccion)
+        # La dirección formateada puede coincidir exactamente con la consulta.
+        return self._esperar_respuesta(lambda d: valor(d, "latitude") and valor(d, "longitude"))
 
     def _buscar_direccion(self, lat, lon):
         self._escribir("latitude", f"{lat:.6f}")
@@ -135,28 +147,48 @@ class Geocoder:
 
     # =============================================================== caché
     def _con_cache(self, clave, consulta):
-        if clave not in self.cache:
-            if not self.usar_web:
-                return None
+        resultado = self._resultado(self.cache.get(clave))
+        if resultado is not None:
+            return resultado
+        if not self.usar_web:
+            return None
+
+        # Los null antiguos se consideran búsquedas pendientes, no respuestas definitivas.
+        for intento in range(2):
             try:
                 if self.driver is None:
                     self._abrir()
-                respuesta = consulta()
                 self.consultas_web += 1
-                time.sleep(PAUSA)
-            except WebDriverException as e:                 # la web se cae o cambia: no se guarda
-                print(f"   [geocoder] error: {e.__class__.__name__}: {str(e)[:120]}")
+                respuesta = consulta()
+            except WebDriverException as e:
+                print(f"   [geocoder] intento {intento + 1}/2: {e.__class__.__name__}: {str(e)[:120]}")
+                # Una respuesta tardía no debe mezclarse con la siguiente consulta.
+                self._cerrar_navegador()
+                if intento == 0:
+                    time.sleep(PAUSA)
+                    continue
                 return None
-            self.cache[clave] = respuesta                   # None también se guarda: "no encontrado"
+
+            time.sleep(PAUSA)
+            resultado = self._resultado(respuesta)
+            if resultado is None:
+                return None
+            self.cache[clave] = respuesta
             self._guardar()
-        return self._resultado(self.cache[clave])
+            return resultado
 
     @staticmethod
     def _resultado(r):
-        if not r or not r.get("lat"):
+        if not isinstance(r, dict) or not isinstance(r.get("direccion"), str):
+            return None
+        try:
+            lat, lon = float(r["lat"]), float(r["lon"])
+        except (KeyError, TypeError, ValueError, OverflowError):
+            return None
+        if not (math.isfinite(lat) and math.isfinite(lon) and -90 <= lat <= 90 and -180 <= lon <= 180):
             return None
         cp, localidad = parsear_direccion(r["direccion"])
-        return {"lat": float(r["lat"]), "lon": float(r["lon"]), "direccion": r["direccion"],
+        return {"lat": lat, "lon": lon, "direccion": r["direccion"],
                 "cp": cp, "localidad": localidad}
 
     def _guardar(self):

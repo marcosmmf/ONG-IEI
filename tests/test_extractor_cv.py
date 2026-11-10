@@ -5,7 +5,7 @@ from unittest.mock import Mock
 from ong.comun.almacen import Almacen
 from ong.comun.utm import utm_a_latlon
 from ong.extractores.base import Extractor, Rechazo
-from ong.extractores.extractor_cv import ExtractorCV
+from ong.extractores.extractor_cv import ExtractorCV, wrapper
 
 
 class ExtractorCVTests(unittest.TestCase):
@@ -139,11 +139,47 @@ class ExtractorCVTests(unittest.TestCase):
             with self.subTest(cp=cp), self.assertRaisesRegex(Rechazo, "código postal"):
                 self.extractor._validar({**entidad, "codigo_postal": cp})
 
-    def test_conserva_regla_clubs_y_rechaza_sector_desconocido(self):
-        entidad = self.extractor.transformar({**self.registro, "tipo_centro": "CLUBS DE CONVIVENCIA", "email": None})
-        self.assertEqual(entidad["ambito"], "VOLUNTARIADO_Y_PARTICIPACION_COMUNITARIA")
+    def test_clubs_se_cargan_como_inclusion_social_segun_sector(self):
+        registro = {**self.registro, "tipo_centro": "CLUBS DE CONVIVENCIA", "email": None,
+                    "sector": "POBLACIÓN EN GENERAL Y COLECTIVOS SOCIALMENTE DESFAVORECIDOS"}
+        informe = self.extractor.cargar([registro])
+        self.assertEqual(informe["cargados"], 1)
+        ambito = self.almacen.con.execute(
+            "SELECT a.nombre FROM entidad e JOIN ambito a ON e.ambito = a.id"
+        ).fetchone()[0]
+        self.assertEqual(ambito, "INCLUSION_SOCIAL")
+
+    def test_clubs_reales_de_la_fuente_se_clasifican_por_sector(self):
+        registros = [r for r in wrapper() if r["tipo_centro"] == "CLUBS DE CONVIVENCIA"]
+        self.assertEqual(len(registros), 3)
+        for registro in registros:
+            with self.subTest(id_origen=registro["id"]):
+                # CP simulado: comprobamos el ámbito, no la precisión geográfica.
+                self.geo.inverso.return_value = {**self.respuesta, "cp": "03001",
+                                                "localidad": registro["municipio"]}
+                entidad = self.extractor.transformar(registro)
+                self.assertEqual(entidad["ambito"], "INCLUSION_SOCIAL")
+
+    def test_taller_prelaboral_conserva_prioridad_sobre_sector(self):
+        entidad = self.extractor.transformar({**self.registro,
+            "tipo_centro": "TALLER PRELABORAL DE INSERCIÓN SOCIAL",
+            "sector": "POBLACIÓN EN GENERAL Y COLECTIVOS SOCIALMENTE DESFAVORECIDOS"})
+        self.assertEqual(entidad["ambito"], "EMPLEO_E_INSERCION_LABORAL")
+
+    def test_rechaza_sector_desconocido_incluso_para_clubs(self):
         with self.assertRaisesRegex(Rechazo, "sector sin correspondencia"):
-            self.extractor.transformar({**self.registro, "sector": "DESCONOCIDO"})
+            self.extractor.transformar({**self.registro, "tipo_centro": "CLUBS DE CONVIVENCIA",
+                                        "sector": "DESCONOCIDO"})
+
+    def test_limpieza_de_texto_y_duplicados_se_aplican_en_extractor(self):
+        registro = {**self.registro, "nombre": "  Centro   de prueba  ",
+                    "domici": " Calle   Mayor, 1 ", "municipio": " Gandia ",
+                    "email": " ZERO@GVA.ES "}
+        informe = self.extractor.cargar([registro, self.registro])
+        self.assertEqual((informe["cargados"], informe["duplicados"]), (1, 1))
+        self.assertEqual(self.almacen.con.execute(
+            "SELECT nombre, direccion, contacto FROM entidad"
+        ).fetchone(), ("Centro de prueba", "Calle Mayor, 1", None))
 
     def test_la_validacion_compartida_sigue_admitiendo_cp_nulo(self):
         entidad = self.extractor.transformar(self.registro)

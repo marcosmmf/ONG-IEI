@@ -5,6 +5,8 @@ Es lo único que sabe SQL: los extractores solo llaman a insertar_entidad().
 import sqlite3
 from pathlib import Path
 
+from ong.comun.normalizar import sin_tildes
+
 RAIZ = Path(__file__).resolve().parents[2]
 BD = RAIZ / "almacen.db"
 ESQUEMA = RAIZ / "sql" / "schema.sql"
@@ -28,11 +30,12 @@ class Almacen:
         self.con.commit()
 
     def localidad(self, nombre, cod_provincia):
-        """Devuelve el código (autonumérico) de la localidad, creándola si no existe."""
-        fila = self.con.execute("SELECT codigo FROM localidad WHERE lower(nombre) = lower(?) AND cod_provincia = ?",
-                                (nombre, cod_provincia)).fetchone()
-        if fila:
-            return fila[0]
+        """Devuelve el código (autonumérico) de la localidad, creándola si no existe.
+        Compara sin tildes ni mayúsculas: 'Valencia' (CAN) es la misma que 'València' (CV)."""
+        for codigo, existente in self.con.execute("SELECT codigo, nombre FROM localidad WHERE cod_provincia = ?",
+                                                  (cod_provincia,)):
+            if sin_tildes(existente) == sin_tildes(nombre):
+                return codigo
         return self.con.execute("INSERT INTO localidad (nombre, cod_provincia) VALUES (?, ?)",
                                 (nombre, cod_provincia)).lastrowid
 

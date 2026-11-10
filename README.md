@@ -38,6 +38,8 @@ pip install -r requirements.txt
 ```
 Hace falta Google Chrome instalado (Selenium descarga solo el driver).
 
+En Windows, activa el entorno virtual con `.venv\Scripts\Activate.ps1`.
+
 ## Uso
 
 ```bash
@@ -48,6 +50,25 @@ python cargar.py can --geo --visible  # igual, pero viendo el navegador
 ```
 Cada carga deja en `salida/` el JSON del wrapper y el informe de la carga.
 Para ver la BD: `sqlite3 almacen.db` o DB Browser for SQLite.
+
+### Clasificación del ámbito de Catalunya
+
+La clase `ong/comun/ambito_ia.py` prepara la clasificación de las entidades
+catalanas mediante Gemini Flash. Lee automáticamente las variables del archivo
+`.env` situado en la raíz del proyecto:
+
+```text
+GEMINI_API_KEY=tu-clave-nueva
+GEMINI_MODEL=gemini-3.8-flash
+```
+
+El archivo `.env` está excluido de Git y no debe compartirse. Se incluye
+`.env.example` como plantilla.
+
+Las respuestas se guardan en `cache/ambito_cache.json`. Si una entidad ya está
+en la caché, no se realiza otra llamada a la API; si Gemini falla o devuelve
+un ámbito que no existe en la tabla `ambito`, la clase informa del error para
+que el extractor pueda rechazar el registro.
 
 ## Demo de la 1ª entrega
 
@@ -65,7 +86,7 @@ Busca `TODO` en `ong/extractores/` para ver qué falta. Resultado actual (sin ge
 |---|---|---|---|---|---|
 | CV  | 1697 | 1659 | 8 (sin dirección) | 30 | CP por geocodificación inversa |
 | CAT | 765  | 764  | 1 (CP 00800)      | 0  | coordenadas, ámbito con IA |
-| CAN | 810  | 740  | 8 (municipio `_U`) | 62 | CP y coordenadas |
+| CAN | 810  | —    | —                  | —  | hecho; falta llenar la caché con `--geo` |
 
 Propuesta de reparto:
 

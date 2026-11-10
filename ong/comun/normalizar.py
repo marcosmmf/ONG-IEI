@@ -4,6 +4,7 @@ Cada función devuelve el valor limpio; si además 'repara' algo, el extractor l
 anota en el informe comparando entrada y salida.
 """
 import re
+import unicodedata
 
 VACIOS = {"", "_U", "0", "-", "NULL", "NONE", "N/A", "S/D"}
 
@@ -20,6 +21,12 @@ def limpiar(texto):
     if vacio(texto):
         return None
     return re.sub(r"\s+", " ", str(texto)).strip(" ,;")
+
+
+def sin_tildes(texto):
+    """Para comparar nombres: 'València' -> 'valencia'."""
+    texto = unicodedata.normalize("NFKD", texto.casefold())
+    return "".join(c for c in texto if not unicodedata.combining(c))
 
 
 def reordenar_articulo(nombre):
@@ -80,7 +87,7 @@ _TLDS = ["org.es", "com.es", "info", "cat", "org", "com", "net", "eus", "gal", "
 
 def _arreglar_dominio(dominio):
     """Inserta los puntos que faltan: 'wwwviaorges' -> 'www.via.org.es'."""
-    if dominio.startswith("www") and len(dominio) > 3 and dominio[3] != ".":
+    if dominio.startswith("www") and len(dominio) > 3 and dominio[3].isalpha():     # 'www2.' es correcto
         dominio = "www." + dominio[3:]
     if dominio.count(".") > (1 if dominio.startswith("www.") else 0):
         return dominio
@@ -103,7 +110,7 @@ def url(valor):
     resto = re.sub(r"^https?://", "", u, flags=re.I)
     dominio, _, ruta = resto.partition("/")
     dominio = _arreglar_dominio(dominio.lower())
-    if not re.fullmatch(r"[a-z0-9-]+(\.[a-z0-9-]+)+", dominio):
+    if not re.fullmatch(r"[\w-]+(\.[\w-]+)+", dominio):        # \w admite tildes y ñ
         return None
     return esquema + dominio + ("/" + ruta if ruta else "")
 
