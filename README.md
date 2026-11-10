@@ -85,7 +85,7 @@ Busca `TODO` en `ong/extractores/` para ver qué falta. Resultado actual (sin ge
 | Fuente | Leídos | Cargados | Rechazados | Duplicados | Falta lo principal |
 |---|---|---|---|---|---|
 | CV  | 1697 | 1659 | 8 (sin dirección) | 30 | CP por geocodificación inversa |
-| CAT | 765  | 764  | 1 (CP 00800)      | 0  | coordenadas, ámbito con IA |
+| CAT | 765  | 764 | 1 (CP 00800)      | 0  | coordenadas |
 | CAN | 810  | —    | —                  | —  | hecho; falta llenar la caché con `--geo` |
 
 Propuesta de reparto:
@@ -93,7 +93,8 @@ Propuesta de reparto:
 1. **Extractor CV**: CP y direcciones vacías con `geocoder.inverso()`, coordenada genérica de València.
 2. **Extractor CAT**: coordenadas con `geocoder.directo()`, reparar nombre/email/web/teléfonos, CP 00800.
 3. **Extractor CAN**: CP y coordenadas con `geocoder.directo()`, municipios `_U`, abreviaturas, duplicados por NIF, webs.
-4. **Ámbito CAT con API de IA** (`clasificar_ambito()` en `extractor_cat.py`).
+4. **Ámbito CAT con API de IA**: integrado mediante `ong/comun/ambito_ia.py` y
+   conectado en `extractor_cat.py`; si la API falla, el registro se rechaza y se informa.
 5. **Documentación**: actualizar los mappings (ver `docs/revision-mappings.md`), lanzar la
    geolocalización completa con `--geo` para llenar la caché y preparar la demo en la VM.
 

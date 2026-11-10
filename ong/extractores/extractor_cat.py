@@ -14,6 +14,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 from ong.comun import normalizar as N
+from ong.comun.ambito_ia import AmbitoIA, AmbitoIAError
 from ong.extractores.base import Extractor, Rechazo
 from ong.comun.geocoder import Geocoder
 
@@ -26,20 +27,25 @@ def wrapper(ruta=FICHERO):
     return [{campo.tag: (campo.text or "").strip() for campo in entitat} for entitat in raiz.iter("entitat")]
 
 
-def clasificar_ambito(r):
-    """TODO: clasificar con una API de IA (nombre, naturalesa, municipi, web -> 1 de los 12 ámbitos).
-    De momento devuelve un valor fijo para que la carga funcione."""
-    return "VOLUNTARIADO_Y_PARTICIPACION_COMUNITARIA"
-
-
 class ExtractorCAT(Extractor):
     FUENTE = "CAT"
+
+    def __init__(self, almacen, geocoder):
+        super().__init__(almacen, geocoder)
+        self.ambito_ia = AmbitoIA(almacen)
 
     def id_origen(self, r):
         return r.get("n_mero_registre")
 
     def nombre_origen(self, r):
         return N.limpiar(r.get("nom_de_l_entitat"))
+
+    def clasificar_ambito(self, nombre, descripcion):
+        """Clasifica una entidad y transforma los errores de IA en rechazos."""
+        try:
+            return self.ambito_ia.clasificar(nombre, descripcion)
+        except AmbitoIAError as exc:
+            raise Rechazo(f"no se pudo clasificar el ámbito: {exc}") from exc
 
     def transformar(self, r):
         # El XML viene sin espacios: "SantCugatdelVallès" -> "Sant Cugat del Vallès"
@@ -101,7 +107,7 @@ class ExtractorCAT(Extractor):
 
         return {
             "nombre": nombre,
-            "ambito": clasificar_ambito(r),
+            "ambito": self.clasificar_ambito(nombre, descripcion),
             "direccion": direccion,
             "codigo_postal": codigo_postal,
             "latitud": lat,
