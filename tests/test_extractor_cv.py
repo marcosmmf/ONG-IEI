@@ -62,11 +62,46 @@ class ExtractorCVTests(unittest.TestCase):
                 with self.assertRaisesRegex(Rechazo, "código postal"):
                     self.extractor.transformar(self.registro)
 
-    def test_rechaza_resultado_de_otro_municipio(self):
-        self.geo.inverso.return_value = {**self.respuesta, "localidad": "Valencia"}
+    def test_directa_rechaza_resultado_de_otro_municipio(self):
+        self.geo.inverso.return_value = None
         self.geo.directo.return_value = {**self.respuesta, "localidad": "Valencia"}
         with self.assertRaisesRegex(Rechazo, "localidad y provincia"):
             self.extractor.transformar(self.registro)
+
+    def test_inversa_acepta_pedania_con_coordenadas_oficiales(self):
+        # Selenium nombra la pedanía ("El Perelló") y no el municipio; el CP es de la provincia
+        self.geo.inverso.return_value = {**self.respuesta, "localidad": "El Perelló", "cp": "46420"}
+        entidad = self.extractor.transformar(self.registro)
+        self.assertEqual(entidad["codigo_postal"], "46420")
+        self.assertEqual(entidad["localidad"], "Gandia")
+        self.geo.directo.assert_not_called()
+        self.assertTrue(any("El Perelló" in i["motivo"] for i in self.extractor._incidencias))
+
+    def test_inversa_de_otra_provincia_no_se_acepta(self):
+        self.geo.inverso.return_value = {**self.respuesta, "localidad": "Alicante", "cp": "03001"}
+        self.geo.directo.return_value = None
+        with self.assertRaisesRegex(Rechazo, "código postal"):
+            self.extractor.transformar(self.registro)
+
+    def test_provincia_de_texto_distinta_del_ine_se_informa(self):
+        self.extractor.transformar({**self.registro, "provincia": "Alacant/Alicante"})
+        self.assertTrue(any(r["campo"] == "provincia" for r in self.extractor._reparaciones))
+        self.extractor._reparaciones = []
+        self.extractor.transformar({**self.registro, "provincia": "València/Valencia"})
+        self.assertFalse(any(r["campo"] == "provincia" for r in self.extractor._reparaciones))
+
+    def test_carretera_con_km_reintenta_sin_el_km(self):
+        self.geo.inverso.return_value = None
+        self.geo.directo.side_effect = [None, {**self.respuesta, "direccion": "Carretera del Pla, 46701 Gandia, España"}]
+        entidad = self.extractor.transformar({**self.registro, "domici": "Carretera del Pla, Km 3"})
+        self.assertEqual(entidad["codigo_postal"], "46701")
+        self.assertEqual(self.geo.directo.call_args_list[1].args[0], "Carretera del Pla, Gandia, Valencia/València, España")
+        self.assertTrue(any("aproximadas" in i["motivo"] for i in self.extractor._incidencias))
+
+    def test_repara_coma_decimal_en_utm(self):
+        entidad = self.extractor.transformar({**self.registro, "y_25830": self.registro["y_25830"] + ",00"})
+        self.assertIsNotNone(entidad["latitud"])
+        self.assertTrue(any(r["campo"] == "y_25830" for r in self.extractor._reparaciones))
 
     def test_admite_variantes_bilingues_y_acentos(self):
         self.geo.inverso.return_value = {**self.respuesta, "localidad": "Burriana", "cp": "12530"}

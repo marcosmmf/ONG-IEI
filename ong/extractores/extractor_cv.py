@@ -117,10 +117,22 @@ class ExtractorCV(Extractor):
         provincia = codigo_ine[:2]
         if not re.fullmatch(r"[0-9]{5}", codigo_ine) or provincia not in self.almacen.provincias:
             raise Rechazo(f"código INE de municipio no válido: {r.get('cod_ine_mun')!r}")
+        # La provincia sale del código INE (oficial); si el texto de la fuente dice otra, se informa.
+        texto_provincia = N.limpiar(r.get("provincia"))
+        if texto_provincia and not self._nombres(texto_provincia) & self._nombres(self.almacen.provincias[provincia]):
+            self.reparado("provincia", texto_provincia, self.almacen.provincias[provincia],
+                          f"no coincide con el código INE del municipio ({codigo_ine}); se usa el INE")
 
         lat = lon = None
         try:
-            x, y = float(r.get("x_25830")), float(r.get("y_25830"))
+            utm = {}
+            for campo in ("x_25830", "y_25830"):
+                texto = str(r.get(campo) or "").strip()
+                if re.fullmatch(r"[0-9]+,[0-9]+", texto):           # "4333847,00": coma decimal
+                    self.reparado(campo, texto, texto.replace(",", "."), "coma decimal en vez de punto")
+                    texto = texto.replace(",", ".")
+                utm[campo] = texto
+            x, y = float(utm["x_25830"]), float(utm["y_25830"])
             if (x, y) != self.COORDENADA_GENERICA and 100000 <= x <= 900000 and 0 <= y <= 10000000:
                 lat, lon = self._coordenadas(*utm_a_latlon(x, y))
         except (TypeError, ValueError, OverflowError):
@@ -128,7 +140,12 @@ class ExtractorCV(Extractor):
 
         direccion = N.limpiar(r.get("domici"))
         resultado = self.geocoder.inverso(lat, lon) if lat is not None else None
-        if self._resultado_coherente(resultado, provincia, localidad):
+        # Las coordenadas son las oficiales de la fuente: el CP de ese punto vale si es de la
+        # provincia, aunque el geocoder nombre una pedanía o urbanización ("El Perelló" en Sueca).
+        if resultado and self._cp(resultado.get("cp"), provincia):
+            if not self._resultado_coherente(resultado, provincia, localidad):
+                self.incidencia("localidad", f"el mapa nombra '{resultado.get('localidad')}' (núcleo de "
+                                             f"{localidad}); se acepta el CP por las coordenadas oficiales")
             if not direccion:
                 direccion = self._direccion_recuperada(resultado, localidad, self.almacen.provincias[provincia])
                 if direccion:
@@ -143,6 +160,14 @@ class ExtractorCV(Extractor):
         if resultado is None:
             consulta = f"{direccion}, {localidad}, {self.almacen.provincias[provincia]}, España"
             resultado = self.geocoder.directo(consulta)
+            # "Carretera Plá de Quart, Km 3": el punto kilométrico confunde al buscador.
+            # Se reintenta sin él; las coordenadas serán las de la carretera (aproximadas).
+            sin_km = N.limpiar(re.sub(r",?\s*\bkm\.?\s*[0-9]+(?:[.,][0-9]+)?", "", direccion, flags=re.I))
+            aproximada = False
+            if not self._resultado_coherente(resultado, provincia, localidad) and sin_km and sin_km != direccion:
+                resultado = self.geocoder.directo(f"{sin_km.strip(' ,')}, {localidad}, "
+                                                  f"{self.almacen.provincias[provincia]}, España")
+                aproximada = True
             if not self._resultado_coherente(resultado, provincia, localidad):
                 raise Rechazo("no se obtuvo un código postal válido y coherente con la localidad y provincia")
             if not self._direccion_recuperada(resultado, localidad, self.almacen.provincias[provincia]):
@@ -152,8 +177,14 @@ class ExtractorCV(Extractor):
             if nuevas_lat is not None and abs(nuevas_lat - lat_generica) < 0.000001 and abs(nuevas_lon - lon_generica) < 0.000001:
                 raise Rechazo("la geocodificación devuelve el punto genérico de València; CP no verificable")
             if nuevas_lat is not None:
-                self.reparado("coordenadas", {"lat": lat, "lon": lon},
-                              {"lat": nuevas_lat, "lon": nuevas_lon}, "geocodificación directa")
+                utm_fuente = f"UTM ({r.get('x_25830') or 'vacía'}, {r.get('y_25830') or 'vacía'})"
+                self.reparado("coordenadas", {"lat": lat, "lon": lon} if lat is not None else utm_fuente,
+                              {"lat": nuevas_lat, "lon": nuevas_lon},
+                              "geocodificación directa sin el punto kilométrico" if aproximada
+                              else "geocodificación directa")
+                if aproximada:
+                    self.incidencia("coordenadas", "coordenadas aproximadas: punto de la carretera, "
+                                                   "no del kilómetro exacto")
             lat, lon = nuevas_lat, nuevas_lon
 
         codigo_postal = self._cp(resultado.get("cp"), provincia)

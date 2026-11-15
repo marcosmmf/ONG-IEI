@@ -5,6 +5,7 @@ Ejemplos:
     python cargar.py cv cat --borrar       # vacía el almacén y carga CV y CAT
     python cargar.py can --geo             # usa Selenium para lo que no esté en caché (lento)
     python cargar.py cat --limite 20       # solo los 20 primeros registros (para probar)
+    python cargar.py todas --borrar --muestra --geo   # demo: carga datos/muestra/ (12 por fuente)
 """
 import argparse
 import json
@@ -20,6 +21,13 @@ FUENTES = {
     "can": (extractor_can.wrapper, extractor_can.ExtractorCAN),
 }
 SALIDA = Path(__file__).parent / "salida"
+# Muestra representativa para la demo: mismo formato y nombre que el fichero original de cada
+# fuente, con casos que se cargan, se reparan y se rechazan.
+MUESTRA = {
+    "cv": extractor_cv.FICHERO.parents[1] / "muestra" / "cv" / extractor_cv.FICHERO.name,
+    "cat": extractor_cat.FICHERO.parents[1] / "muestra" / "cat" / extractor_cat.FICHERO.name,
+    "can": extractor_can.FICHERO.parents[1] / "muestra" / "can" / extractor_can.FICHERO.name,
+}
 
 
 def main():
@@ -29,6 +37,7 @@ def main():
     p.add_argument("--geo", action="store_true", help="usar Selenium para lo que no esté en caché")
     p.add_argument("--visible", action="store_true", help="ver el navegador de Selenium")
     p.add_argument("--limite", type=int, help="cargar solo los N primeros registros de cada fuente")
+    p.add_argument("--muestra", action="store_true", help="cargar la muestra de datos/muestra/ (demo)")
     args = p.parse_args()
 
     fuentes = list(FUENTES) if "todas" in args.fuentes else args.fuentes
@@ -41,7 +50,7 @@ def main():
     try:
         for nombre in fuentes:
             wrapper, Extractor = FUENTES[nombre]
-            registros = wrapper()                                        # 1) wrapper: fuente -> JSON
+            registros = wrapper(MUESTRA[nombre]) if args.muestra else wrapper()   # 1) wrapper: fuente -> JSON
             (SALIDA / f"{nombre}_wrapper.json").write_text(
                 json.dumps(registros, ensure_ascii=False, indent=2), encoding="utf-8")
 

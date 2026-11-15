@@ -19,6 +19,15 @@ de ocho registros, incluidos los cinco iniciales y casos especiales; falta lo si
 | 🔴 | Ampliar la prueba de geocodificación real | Probar más direcciones vacías y centros con el punto genérico de València, incluido un caso que pueda recuperarse mediante geocodificación directa. Verificar que el resultado corresponda al centro y no solo al municipio o provincia. Revisar reparaciones, rechazos e incidencias; la muestra inicial no valida los 1.697 registros. |
 | ⚪ | Presentación del mapping | Eliminar la página 3 vacía y actualizar o retirar el bloque final «Después faltaría», que enumera tareas ya implementadas. |
 
+### Decisiones tomadas con la muestra de la demo (15-11-2026)
+
+| Caso | Decisión |
+|---|---|
+| Pedanías / urbanizaciones (El Perelló en Sueca…) | Con las coordenadas oficiales de la fuente, el CP de la geocodificación inversa se acepta si es de la provincia aunque el mapa nombre un núcleo distinto del municipio; se informa como aviso. En la geocodificación directa (a partir de la dirección) se sigue exigiendo que coincida el municipio. |
+| Coordenada UTM con coma decimal (`4333847,00`) | Se repara a punto decimal y se informa. |
+| Texto de `provincia` distinto del código INE | Manda el código INE (oficial, y coincide con coordenadas y CP); se informa como reparado. |
+| Dirección con punto kilométrico (`Carretera …, Km 3`) que el mapa no encuentra | Se reintenta sin el "Km X"; se carga con el CP obtenido y aviso de coordenadas aproximadas. |
+
 ## Catalunya (`docs/mappings/mappings-CAT.docx`)
 
 | Prioridad | Pendiente | Qué falta |
@@ -38,10 +47,10 @@ Las decisiones de abajo están implementadas en `ong/extractores/extractor_can.p
 porque Selenium no encuentra la calle y solo devuelve el municipio o nada; 1 por municipio `_U`).
 2 de los cargados quedan en otro municipio de la misma provincia (Arona y Puerto de la Cruz en vez de
 Santa Cruz de Tenerife), limitación asumida en la decisión 3.
+El profe confirma que, si no se obtiene el CP, se rechaza: el CP es un criterio de búsqueda.
 
 | Prioridad | Pendiente | Qué falta |
 |---|---|---|
-| 🔴 | Consultar al profe los rechazos por geocodificación | Con la regla actual se rechaza ~1 de cada 4 entidades (~200 de 810). Alternativa: cargarlas sin CP ni coordenadas y con un aviso en el informe. Cambiarlo es tocar solo `geolocalizar()`. |
 | 🔴 | Consultar al profe la caché del geocoder | Si se puede usar, ejecutar `python cargar.py can --geo` una vez (~20-25 min) para llenarla; si no, la carga consulta siempre la web. |
 | 🟡 | Actualizar el Word | Pasar las correcciones del profe y las decisiones de esta tabla; borrar los comentarios en rojo. |
 

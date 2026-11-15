@@ -1,20 +1,29 @@
 """Clasificación de entidades mediante Gemini y caché local de resultados."""
 
-import hashlib
 import json
 import os
+import ssl
 import tempfile
+import time
 import urllib.error
 import urllib.request
 from pathlib import Path
 
+import certifi
 from dotenv import load_dotenv
 
 
 RAIZ = Path(__file__).resolve().parents[2]
 CACHE_POR_DEFECTO = RAIZ / "cache" / "ambito_cache.json"
-MODELO_POR_DEFECTO = "gemini-3.8-flash"
+# Alias de Google que apunta siempre al último Flash-Lite: si retiran un modelo concreto, no se rompe.
+# Se usa Lite porque el Flash normal da 503 (saturado) y timeouts; Lite responde en <1 s.
+# GEMINI_MODEL en el .env es opcional; si ese modelo deja de existir (404) se vuelve a este alias.
+MODELO_POR_DEFECTO = "gemini-flash-lite-latest"
 load_dotenv(RAIZ / ".env")
+
+# Certificados de certifi: el Python de python.org en macOS no trae los del sistema
+# y urllib falla con CERTIFICATE_VERIFY_FAILED al conectar con Google.
+_SSL = ssl.create_default_context(cafile=certifi.where())
 
 
 class AmbitoIAError(RuntimeError):
@@ -34,7 +43,7 @@ class AmbitoIA:
         cache_path=CACHE_POR_DEFECTO,
         api_key=None,
         model=None,
-        timeout=30,
+        timeout=20,
     ):
         self.ambitos = tuple(sorted(almacen.ambitos))
         if not self.ambitos:
@@ -96,30 +105,45 @@ class AmbitoIA:
                 },
             },
         }
-        url = (
-            f"https://generativelanguage.googleapis.com/v1beta/models/"
-            f"{self.model}:generateContent?key={self.api_key}"
-        )
-        request = urllib.request.Request(
-            url,
-            data=json.dumps(body, ensure_ascii=False).encode("utf-8"),
-            headers={"Content-Type": "application/json"},
-            method="POST",
-        )
+        datos = json.dumps(body, ensure_ascii=False).encode("utf-8")
+        # La clave va en la cabecera (no en la URL) para que no salga en logs ni errores.
+        cabeceras = {"Content-Type": "application/json", "x-goog-api-key": self.api_key}
+
         try:
-            with urllib.request.urlopen(request, timeout=self.timeout) as response:
-                data = json.loads(response.read().decode("utf-8"))
-        except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError) as exc:
-            raise AmbitoIAError(f"error al consultar Gemini: {exc}") from exc
-        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-            raise AmbitoIAError("respuesta no válida de Gemini") from exc
+            try:
+                data = self._peticion(datos, cabeceras)
+            except urllib.error.HTTPError as exc:
+                if exc.code == 429:
+                    # Límite de peticiones por minuto: se espera un poco y se reintenta UNA vez
+                    time.sleep(5)
+                elif exc.code == 404 and self.model != MODELO_POR_DEFECTO:
+                    # El modelo del .env ya no existe: se usa el último Flash
+                    self.model = MODELO_POR_DEFECTO
+                else:
+                    raise
+                data = self._peticion(datos, cabeceras)
+        except urllib.error.HTTPError as exc:
+            detalle = exc.read().decode("utf-8", "replace")[:200]
+            raise AmbitoIAError(f"Gemini respondió HTTP {exc.code}: {detalle}") from exc
 
         try:
             text = data["candidates"][0]["content"]["parts"][0]["text"]
-            result = json.loads(text)
-            return result["ambito"].strip()
+            return json.loads(text)["ambito"].strip()
         except (KeyError, IndexError, TypeError, AttributeError, json.JSONDecodeError) as exc:
-            raise AmbitoIAError("Gemini no devolvió un ámbito JSON válido") from exc
+            raise AmbitoIAError(f"Gemini no devolvió un ámbito: {str(data)[:200]}") from exc
+
+    def _peticion(self, datos, cabeceras):
+        """Una llamada a Gemini. Los errores de red se convierten en AmbitoIAError
+        (el registro se rechaza); los HTTPError se dejan pasar para tratar 429 y 404."""
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent"
+        request = urllib.request.Request(url, data=datos, headers=cabeceras, method="POST")
+        try:
+            with urllib.request.urlopen(request, timeout=self.timeout, context=_SSL) as response:
+                return json.loads(response.read().decode("utf-8"))
+        except urllib.error.HTTPError:                # subclase de URLError: hay que dejarla pasar antes
+            raise
+        except (urllib.error.URLError, TimeoutError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise AmbitoIAError(f"error al consultar Gemini: {exc}") from exc
 
     def _validar_ambito(self, ambito):
         if ambito not in self.ambitos:
@@ -158,5 +182,5 @@ class AmbitoIA:
 
     @staticmethod
     def _clave_cache(nombre, descripcion):
-        texto = f"{nombre}\n{descripcion}".encode("utf-8")
-        return hashlib.sha256(texto).hexdigest()
+        """Clave legible ("nombre | descripción") para poder revisar la caché a mano."""
+        return f"{nombre} | {descripcion}"

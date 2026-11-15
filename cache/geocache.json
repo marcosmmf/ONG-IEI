@@ -41,5 +41,275 @@
   "lat": "39.8773741",
   "lon": "-0.5070717",
   "direccion": "Calle Santos de la Piedra, 12470 Navajas, España"
+ },
+ "D|Pla del Vinyet 9, 08172 Sant Cugat del Vallès, España": {
+  "lat": "41.4688409",
+  "lon": "2.0853199",
+  "direccion": "Avinguda Pla del Vinyet, 08172 Sant Cugat del Vallès, España"
+ },
+ "D|Major de Sarrià 125, 08017 Barcelona, España": {
+  "lat": "41.4010594",
+  "lon": "2.1201581",
+  "direccion": "Papereria CLIPS, Carrer Major de Sarrià, 125, 08017 Barcelona, España"
+ },
+ "D|Pg Ferrocarrils Catalans 97, 08940 Cornellà de Llobregat, España": {
+  "lat": "41.3528832",
+  "lon": "2.0843305",
+  "direccion": "Passeig dels Ferrocarrils Catalans, 08940 Cornellà de Llobregat, España"
+ },
+ "D|Mallorca 2, 08192 Sant Quirze del Vallès, España": {
+  "lat": "41.5239534",
+  "lon": "2.0904661",
+  "direccion": "Carrer de Mallorca, 08205 Sant Quirze del Vallès, España"
+ },
+ "D|Fonollar 14, 08003 Barcelona, España": {
+  "lat": "41.4538116",
+  "lon": "2.2074868",
+  "direccion": "Carrer del Mas Fonollar, 14, 08921 Santa Coloma de Gramenet, España"
+ },
+ "I|39.462275,-0.389809": {
+  "lat": "39.462275",
+  "lon": "-0.389809",
+  "direccion": "Calle Cuenca, 89, 46007 Valencia, España"
+ },
+ "D|SAN ANTONIO, 20, Bicorp, Valencia/València, España": {
+  "lat": "39.5200066",
+  "lon": "-1.1532742",
+  "direccion": "46390 Requena, España"
+ },
+ "I|39.987326,-0.060437": {
+  "lat": "39.987326",
+  "lon": "-0.060437",
+  "direccion": "Avenida Alcora, 132, 12006 Castelló de La Plana, España"
+ },
+ "I|39.059046,-1.058960": {
+  "lat": "39.059046",
+  "lon": "-1.05896",
+  "direccion": "Calle Santo Domingo, 26, 46620 Ayora, España"
+ },
+ "I|39.394438,-0.591864": {
+  "lat": "39.394438",
+  "lon": "-0.591864",
+  "direccion": "Diseminado Tesoro, 4, 46389 Urbanización Mollón Blanc, España"
+ },
+ "D|URB. MONTE TESORO 6, CALLE 1, Nº 2, Turís, Valencia/València, España": {
+  "lat": "39.3947226",
+  "lon": "-0.5921816",
+  "direccion": "46192 Turís, España"
+ },
+ "I|38.523790,-0.170292": {
+  "lat": "38.52379",
+  "lon": "-0.170292",
+  "direccion": "Calle Tramuntana, 2, 03570 Urbanització Cales I Talaies, España"
+ },
+ "D|CALLE TRAMONTANA Nº 2, la Vila Joiosa/Villajoyosa, Alicante/Alacant, España": {
+  "lat": "38.50754",
+  "lon": "-0.23346",
+  "direccion": "Villajoyosa, Valencia, España"
+ },
+ "I|38.825748,0.096995": {
+  "lat": "38.825748",
+  "lon": "0.096995",
+  "direccion": "Carrer de la Marquesa de Valero de Palma, 4, 03749 Denia, España"
+ },
+ "D|Av. Antonio Ramos Carratalá, 17, Alacant/Alicante, Alicante/Alacant, España": {
+  "lat": "38.3701939",
+  "lon": "-0.4767133",
+  "direccion": "Avenida Antonio Ramos Carratalá, 03015 Alicante, España"
+ },
+ "D|Carretera Plá de Quart, Km 3, Aldaia, Valencia/València, España": {
+  "lat": "39.46569",
+  "lon": "-0.46005",
+  "direccion": "Aldaya, Valencia, España"
+ },
+ "I|39.277776,-0.277514": {
+  "lat": "39.277776",
+  "lon": "-0.277514",
+  "direccion": "Calle Dunes, 6, 46420 El Perelló, España"
+ },
+ "D|C/ LES DUNES Nº 9 ( EL PERELLO ), Sueca, Valencia/València, España": {
+  "lat": "38.9511212",
+  "lon": "-0.12055",
+  "direccion": "Carrer les Dunes, 46712 Piles, España"
+ },
+ "D|Plaça Lluís Companys 12, 17003 Girona, España": {
+  "lat": "41.9710787",
+  "lon": "2.8223195",
+  "direccion": "Plaça de Lluís Companys, 17003 Gerona, España"
+ },
+ "D|Carrer Pirineus 52, 08922 Santa Coloma de Gramenet, España": {
+  "lat": "41.4447539",
+  "lon": "2.214679",
+  "direccion": "Carrer dels Pirineus, 08923 Santa Coloma de Gramenet, España"
+ },
+ "D|Carrer Rectoria 6, 17472 L'Armentera, España": {
+  "lat": "42.1716541",
+  "lon": "3.0753323",
+  "direccion": "Carrer de la Rectoria, 17472 l'Armentera, España"
+ },
+ "D|Carrer Josep Aguilera i Martí 19, 17003 Girona, España": {
+  "lat": "41.9831",
+  "lon": "2.8249",
+  "direccion": "17003, España"
+ },
+ "D|Costa i Cuxart 10, 08031 Barcelona, España": {
+  "lat": "41.4277958",
+  "lon": "2.1746246",
+  "direccion": "Carrer de Costa i Cuxart, 10, 08016 Barcelona, España"
+ },
+ "D|Carrer Centre 10, 08901 L'Hospitalet de Llobregat, España": {
+  "lat": "41.3612854",
+  "lon": "2.0993577",
+  "direccion": "Carrer del Centre, 08801 l'Hospitalet de Llobregat, España"
+ },
+ "D|Travessera de Gràcia 84, 08006 Barcelona, España": {
+  "lat": "41.3976945",
+  "lon": "2.1522575",
+  "direccion": "Super 365, Travessera de Gràcia, 84, 08006 Barcelona, España"
+ },
+ "D|Av Rasos de Peguera 67, Barcelona, España": {
+  "lat": "41.4597009",
+  "lon": "2.175791",
+  "direccion": "Avinguda Rasos de Peguera, 08033 Barcelona, España"
+ },
+ "D|Carrer Llibertat 47, 17012 Barcelona, España": {
+  "lat": "41.5713276",
+  "lon": "2.0188911",
+  "direccion": "Carrer de la Llibertat, 47, 08226 Terrassa, España"
+ },
+ "D|Calle Hero 19, Santa Cruz de Tenerife, España": {
+  "lat": "28.4690201",
+  "lon": "-16.2725457",
+  "direccion": "Calle Hero, 38008 Santa Cruz de Tenerife, España"
+ },
+ "D|Calle El Drago 6, La Laguna, Santa Cruz de Tenerife, España": {
+  "lat": "28.478262",
+  "lon": "-16.3089381",
+  "direccion": "Calle el Drago, 38207 La Cuesta, España"
+ },
+ "D|Calle Behahore 4, Breña Alta, Santa Cruz de Tenerife, España": {
+  "lat": "28.65",
+  "lon": "-17.78333",
+  "direccion": "Breña Alta, Canarias, España"
+ },
+ "D|Calle San Felipe Edificio Chavito 89, Puerto de la Cruz, Santa Cruz de Tenerife, España": {
+  "lat": "28.41397",
+  "lon": "-16.54867",
+  "direccion": "Puerto de la Cruz, Canarias, España"
+ },
+ "D|Calle Cristobal 114, La Matanza de Acentejo, Santa Cruz de Tenerife, España": {
+  "lat": "28.4399765",
+  "lon": "-16.4484266",
+  "direccion": "Calle San Cristóbal, El Reventón, 38370 La Matanza de Acentejo, España"
+ },
+ "D|Calle Juan Rejon 141, Las Palmas de Gran Canaria, Las Palmas, España": {
+  "lat": "28.150739",
+  "lon": "-15.4186034",
+  "direccion": "Edificio Puerto Europa, Calle Juan Rejón, 141, 35008 Las Palmas de Gran Canaria, España"
+ },
+ "D|Calle Maya 20, La Laguna, Santa Cruz de Tenerife, España": {
+  "lat": "28.4897045",
+  "lon": "-16.3223836",
+  "direccion": "Calle Maya, 38202 La Cuesta, España"
+ },
+ "D|Calle Alcalde Garcia Ramos 6, Santa Cruz de Tenerife, España": {
+  "lat": "28.4585425",
+  "lon": "-16.2689508",
+  "direccion": "Calle Alcalde García Ramos, 38007 Santa Cruz de Tenerife, España"
+ },
+ "D|Carretera Plá de  Quart, Km 3, Aldaia, Valencia/València, España": {
+  "lat": "39.46569",
+  "lon": "-0.46005",
+  "direccion": "Aldaya, Valencia, España"
+ },
+ "D|Carretera Plá de Quart, Aldaia, Valencia, España": {
+  "lat": "39.4513693",
+  "lon": "-0.5143549",
+  "direccion": "Carretera del Pla de Quart, 46909 Aldaia, España"
+ },
+ "D|Carretera de Quart, Aldaia, Valencia, España": {
+  "lat": "39.4513693",
+  "lon": "-0.5143549",
+  "direccion": "Carretera del Pla de Quart, 46909 Aldaia, España"
+ },
+ "D|Carretera Pla de Quart, Aldaia, España": {
+  "lat": "39.4513693",
+  "lon": "-0.5143549",
+  "direccion": "Carretera del Pla de Quart, 46909 Aldaia, España"
+ },
+ "I|39.448312,-0.499244": {
+  "lat": "39.448312",
+  "lon": "-0.499244",
+  "direccion": "unnamed road, 46909 Aldaia, España"
+ },
+ "I|39.132806,-0.786718": {
+  "lat": "39.132806",
+  "lon": "-0.786718",
+  "direccion": "Calle San Antonio, 20, 46825 Bicorp, España"
+ },
+ "D|Carretera Plá de Quart, Aldaia, Valencia/València, España": {
+  "lat": "39.4513693",
+  "lon": "-0.5143549",
+  "direccion": "Carretera del Pla de Quart, 46909 Aldaia, España"
+ },
+ "D|Carrer Llibertat 47, Barcelona, España": {
+  "lat": "41.5713276",
+  "lon": "2.0188911",
+  "direccion": "Carrer de la Llibertat, 47, 08226 Terrassa, España"
+ },
+ "D|Carrer Llibertat 47, 08012 Barcelona, España": {
+  "lat": "41.4006193",
+  "lon": "2.1624426",
+  "direccion": "Carrer de la Llibertat, 47, 08012 Barcelona, España"
+ },
+ "D|17012, España": {
+  "lat": "42.25103",
+  "lon": "2.91341",
+  "direccion": "Avinyonet de Puigventós, Cataluña, España"
+ },
+ "D|08012, España": {
+  "lat": "41.4021726",
+  "lon": "2.1573575",
+  "direccion": "08012 Barcelona, España"
+ },
+ "D|08922, España": {
+  "lat": "41.4492194",
+  "lon": "2.2115253",
+  "direccion": "08922 Santa Coloma de Gramenet, España"
+ },
+ "D|17472, España": {
+  "lat": "42.1704105",
+  "lon": "3.0729817",
+  "direccion": "17472 l'Armentera, España"
+ },
+ "D|Barcelona, Cataluña, España": {
+  "lat": "41.3825802",
+  "lon": "2.177073",
+  "direccion": "Barcelona, Cataluña, España"
+ },
+ "I|41.382580,2.177073": {
+  "lat": "41.38258",
+  "lon": "2.177073",
+  "direccion": "Plaça de Sant Jaume, 1, 08002 Barcelona, España"
+ },
+ "D|Sant Cugat del Vallès, Cataluña, España": {
+  "lat": "41.4707933",
+  "lon": "2.0848815",
+  "direccion": "Sant Cugat del Vallès, Cataluña, España"
+ },
+ "I|41.470793,2.084881": {
+  "lat": "41.470793",
+  "lon": "2.084881",
+  "direccion": "Policia Local, Plaça de la Vila, 2, 08172 Sant Cugat del Vallès, España"
+ },
+ "D|L'Armentera, Cataluña, España": {
+  "lat": "42.1718706",
+  "lon": "3.0741446",
+  "direccion": "17472 l'Armentera, España"
+ },
+ "I|42.171871,3.074145": {
+  "lat": "42.171871",
+  "lon": "3.074145",
+  "direccion": "Calle Ajuntament, 4, 17472 L'armentera, España"
  }
 }

@@ -47,7 +47,14 @@ python cargar.py todas --borrar     # vacía el almacén y carga las 3 fuentes
 python cargar.py cat --limite 20    # prueba rápida con 20 registros
 python cargar.py can --geo          # geolocaliza con Selenium lo que no esté en caché (LENTO)
 python cargar.py can --geo --visible  # igual, pero viendo el navegador
+python cargar.py todas --borrar --muestra --geo   # DEMO: carga la muestra de datos/muestra/
 ```
+
+### Muestra para la demo (`datos/muestra/`)
+12 registros por fuente, con el mismo formato y nombre de fichero que el original. Incluye
+casos modificados a propósito para que se vean reparaciones y rechazos: CP sin el 0 inicial
+o de otra provincia, coordenadas imposibles o vacías, nombre vacío, provincia `_U` o desconocida,
+municipio que no corresponde a la provincia…
 Cada carga deja en `salida/` el JSON del wrapper y el informe de la carga.
 Para ver la BD: `sqlite3 almacen.db` o DB Browser for SQLite.
 
@@ -59,7 +66,7 @@ catalanas mediante Gemini Flash. Lee automáticamente las variables del archivo
 
 ```text
 GEMINI_API_KEY=tu-clave-nueva
-GEMINI_MODEL=gemini-3.8-flash
+# GEMINI_MODEL=gemini-flash-lite-latest   (opcional: por defecto ya usa el último Flash-Lite)
 ```
 
 El archivo `.env` está excluido de Git y no debe compartirse. Se incluye
