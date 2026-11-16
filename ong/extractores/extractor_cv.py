@@ -189,8 +189,6 @@ class ExtractorCV(Extractor):
 
         codigo_postal = self._cp(resultado.get("cp"), provincia)
         self.reparado("codigo_postal", None, codigo_postal, "obtenido mediante geocodificación")
-        if lat is None:
-            self.incidencia("coordenadas", "sin coordenadas fiables; no se mostrará en el mapa")
 
         descripcion = " - ".join(p for p in (N.limpiar(r.get("leyenda")), sector) if p) or None
         email = N.limpiar(r.get("email"))

@@ -150,17 +150,17 @@ class ExtractorCVTests(unittest.TestCase):
                 self.assertEqual(entidad["latitud"], self.respuesta["lat"])
         self.geo.inverso.assert_not_called()
 
-    def test_cp_valido_sin_coordenadas_informa_incidencia_y_no_contamina_siguiente(self):
+    def test_cp_valido_sin_coordenadas_se_rechaza_y_no_contamina_siguiente(self):
+        # Indicación del profe: sin coordenadas se rechaza aunque haya CP.
         self.geo.directo.return_value = {**self.respuesta, "lat": None, "lon": None}
         informe = self.extractor.cargar([{**self.registro, "x_25830": None},
                                         {**self.registro, "id": "otro", "nombre": "Otro centro"}])
-        self.assertEqual(informe["cargados"], 2)
-        self.assertEqual(len(informe["incidencias"]), 1)
-        self.assertEqual(informe["incidencias"][0]["id_origen"], "1508")
+        self.assertEqual(informe["cargados"], 1)
+        self.assertEqual(informe["rechazados"][0]["id_origen"], "1508")
+        self.assertIn("coordenadas", informe["rechazados"][0]["motivo"])
+        self.assertNotIn("incidencias", informe)
         self.assertEqual(self.almacen.con.execute(
-            "SELECT latitud, longitud FROM entidad WHERE nombre = 'Centro de prueba'"
-        ).fetchone(), (None, None))
-        self.assertEqual({r["campo"] for r in informe["reparados"][0]["reparaciones"]}, {"codigo_postal"})
+            "SELECT count(*) FROM entidad WHERE latitud IS NULL").fetchone()[0], 0)
 
     def test_informe_rechazo_y_carga_continua_sin_insertar_cp_nulo(self):
         self.geo.inverso.side_effect = [None, self.respuesta.copy()]
@@ -216,15 +216,19 @@ class ExtractorCVTests(unittest.TestCase):
             "SELECT nombre, direccion, contacto FROM entidad"
         ).fetchone(), ("Centro de prueba", "Calle Mayor, 1", None))
 
-    def test_la_validacion_compartida_sigue_admitiendo_cp_nulo(self):
+    def test_la_validacion_compartida_rechaza_sin_cp_o_sin_coordenadas(self):
+        # Regla común a las 3 fuentes: sin CP o sin coordenadas no se carga.
         entidad = self.extractor.transformar(self.registro)
-        entidad["codigo_postal"] = None
         otro = Extractor(self.almacen, self.geo)
         otro.FUENTE = "CAT"
-        otro.transformar = lambda registro: entidad
-        informe = otro.cargar([{}])
-        self.assertEqual(informe["cargados"], 1)
-        self.assertNotIn("incidencias", informe)
+        for cambio, motivo in (({"codigo_postal": None}, "código postal"),
+                               ({"latitud": None, "longitud": None}, "coordenadas"),
+                               ({"latitud": 60.0}, "fuera de España")):
+            with self.subTest(cambio=cambio):
+                otro.transformar = lambda registro, c=cambio: {**entidad, **c}
+                informe = otro.cargar([{}])
+                self.assertEqual(informe["cargados"], 0)
+                self.assertIn(motivo, informe["rechazados"][0]["motivo"])
 
 
 if __name__ == "__main__":

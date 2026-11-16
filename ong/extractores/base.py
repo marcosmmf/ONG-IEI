@@ -60,7 +60,8 @@ class Extractor:
             informe["leidos"] += 1
             self._reparaciones = []
             self._incidencias = []
-            ident = {"id_origen": self.id_origen(registro), "nombre": self.nombre_origen(registro)}
+            ident = {"id_origen": self.id_origen(registro),
+                     "nombre": self.nombre_origen(registro) or "(sin nombre)"}
             try:
                 e = self.transformar(registro)
                 ident["nombre"] = e.get("nombre") or ident["nombre"]
@@ -88,12 +89,15 @@ class Extractor:
         if e.get("cod_provincia") not in self.almacen.provincias:
             raise Rechazo(f"provincia no válida: {e.get('cod_provincia')!r}")
 
+        # Norma del proyecto (confirmada por el profe): sin CP o sin coordenadas NO se carga.
         cp = e.get("codigo_postal")
-        if cp and (not re.fullmatch(r"\d{5}", cp) or cp[:2] != e["cod_provincia"]):
-            self.reparado("codigo_postal", cp, None, "CP no corresponde a la provincia; se descarta")
-            e["codigo_postal"] = None
+        if not cp:
+            raise Rechazo("falta código postal")
+        if not re.fullmatch(r"\d{5}", cp) or cp[:2] != e["cod_provincia"]:
+            raise Rechazo(f"el código postal {cp} no corresponde a la provincia {e['cod_provincia']}")
 
         lat, lon = e.get("latitud"), e.get("longitud")
-        if lat is not None and not (27 <= lat <= 44 and -19 <= lon <= 5):     # fuera de España
-            self.reparado("coordenadas", f"{lat},{lon}", None, "fuera de España; se descartan")
-            e["latitud"] = e["longitud"] = None
+        if lat is None or lon is None:
+            raise Rechazo("faltan coordenadas: no se pudo localizar la dirección en el mapa")
+        if not (27 <= lat <= 44 and -19 <= lon <= 5):
+            raise Rechazo(f"coordenadas fuera de España: {lat}, {lon}")
