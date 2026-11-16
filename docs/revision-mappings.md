@@ -40,6 +40,15 @@ de ocho registros, incluidos los cinco iniciales y casos especiales; falta lo si
 | 🟡 | Reparar emails y webs | Aplicar `N.email()` y `N.url()` donde sea posible e informar de las reparaciones. Actualizar la regla R9, que todavía exige copiar la URL «sin reparar». |
 | 🟡 | Tratar teléfonos múltiples | Separar los números que vienen juntos, incluidos los separados por saltos de línea; validar cada uno y concatenar los contactos válidos. |
 
+### Decisiones tomadas con la muestra de la demo (16-11-2026)
+
+| Caso | Decisión |
+|---|---|
+| CP y coordenadas (sin coordenadas no se carga, indicación del profe) | 1) formato del CP (`8006` → `08006`); 2) se busca "calle número, CP municipio"; 3) si no aparece en el municipio, se busca sin CP; 4) si no aparece en el municipio de ninguna forma → rechazar. "En el municipio" = mismo nombre o exactamente el CP de la fuente (cubre pedanías). El CP de la fuente manda si es de la provincia donde está la dirección; si es imposible (`99033`) o de otra provincia, se usa el del mapa y se informa. |
+| CP de otra provincia irreparable (324: `17012` en Barcelona; sin CP el mapa da una calle homónima en Terrassa) | Rechazar e informar dónde la sitúa el mapa. |
+| Espacios | Nombres: se separan `per la`, `para la`, `contra la`… pegados (33 nombres). Direcciones: se separa el número del texto y de `local`, `baixos`, `àtic`… (268); los casos ambiguos (`442n1a`) se dejan. La consulta al mapa usa la dirección original (no cambia la caché). |
+| Rechazados | Se informan con el nombre ya separado; los que no tienen nombre, como "(sin nombre)". |
+
 ## Canarias (`docs/mappings/mappings-CAN.docx`)
 
 Las decisiones de abajo están implementadas en `ong/extractores/extractor_can.py` (la 8, en
@@ -66,6 +75,9 @@ El profe confirma que, si no se obtiene el CP, se rechaza: el CP es un criterio 
 | 7 | URL: reparar con `N.url` | 191 webs; las reparables (`wwwadepsi.org`, `www. raiz…`, `hhtps://`) ya se arreglan; 3 con tilde o ñ (`www.acciónaborigen.com` ×2, `asociacionacompañame.com`) se pierden | ✅ **Decidido:** aceptar dominios con tilde o ñ. Las 5 que no son webs (texto libre, email, "facebook: …") → vacío; la entidad se carga igual y se informa como incidencia. Las reparadas se informan con antes/después. |
 | 8 | `L.nombre`: reordenar artículo | `Palmas de Gran Canaria (Las)` ya se arregla; `Oliva La` (6, sin paréntesis) no; CAN escribe "Valencia" y CV "València" | ✅ **Decidido:** reparar `Oliva La` → `La Oliva` e informarlo. Además, en `Almacen.localidad()` (común a las 3 fuentes) buscar la localidad comparando el nombre sin tildes ni mayúsculas, para que el mismo municipio escrito distinto en dos fuentes sea una sola localidad (se queda el nombre del primero que se cargó). **Avisar al resto del equipo**: afecta a CV y CAT. |
 | 9 | `E.descripcion` ← subárea, o área si la subárea es `_U` (comentario en rojo: "opcional dejar NULL") | Siempre hay área | ✅ **Decidido:** mantener la regla (ya implementada) y borrar el comentario en rojo del Word. |
+| 10 | Provincia `_U` o inexistente (`99`) con municipio conocido (casos de la muestra) | En los 802 registros con provincia, las 2 primeras cifras de `municipio_id` son siempre la provincia | ✅ **Decidido (16-11):** deducir la provincia de `municipio_id`; se acepta solo si el CP de Selenium es de esa provincia. Se informa como reparado. (Los 8 `_U` sin nombre de municipio siguen rechazándose, #2.) |
+| 11 | `municipio_id` de otra provincia que el municipio y la provincia (muestra: 35030 en Santa Cruz de Tenerife) | — | ✅ **Decidido (16-11):** mandan nombre del municipio y provincia (los confirma el CP del mapa); se carga y se informa como aviso. |
+| 12 | Reparaciones que no salían en el informe | "Laguna (La)", "Calle" + "Calle Alcalde…" | ✅ Se informan como reparadas (artículo delante, tipo de vía repetido). Nombre vacío: se rechaza al principio ("falta nombre"), sin consultar a Selenium. |
 
 ## Decisión pendiente sobre la BD
 
