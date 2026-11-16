@@ -40,9 +40,25 @@ def wrapper(ruta=FICHERO):
 
 
 def separar_nombre(texto):
-    """Recupera los espacios del nombre sin partir las palabras de NO_PARTIR."""
-    protegido = re.sub(rf"({'|'.join(NO_PARTIR)})(?=[A-ZÀ-Ý])", r"\1 ", texto)
-    return N.separar_toponimo(protegido)
+    """Recupera los espacios del nombre sin partir las palabras de NO_PARTIR.
+    Además separa preposición + artículo pegados en minúscula delante de una mayúscula:
+    'AssociacióperlaInserció' -> 'Associació per la Inserció'."""
+    t = re.sub(r"(?<=[a-zà-ÿ])([Pp]er|[Pp]ara|[Cc]ontra|[Ss]obre)(la|les|el|els|los|las)(?=[A-ZÀ-Ý])",
+               r" \1 \2 ", texto)
+    protegido = re.sub(rf"({'|'.join(NO_PARTIR)})(?=[A-ZÀ-Ý])", r"\1 ", t)
+    return N.limpiar(N.separar_toponimo(protegido))
+
+
+def separar_numeros(direccion):
+    """Separa los números pegados al texto en la dirección:
+    'Martí19' -> 'Martí 19';  '52local7e' -> '52 local 7e';  '10àtic1a' -> '10 àtic 1a'.
+    No toca '2n', '1a', '7è' (piso/puerta) ni separa números entre sí: '442n1a' es ambiguo
+    (¿44, 2n 1a o 442?) y se deja como viene. Solo afecta a lo que se guarda; al mapa se le
+    pregunta con direccion_para_mapa() sobre la dirección original."""
+    d = re.sub(r"(?<=[A-Za-zÀ-ÿ]{2})(?=\d)", " ", direccion)
+    d = re.sub(r"(?<=\d)(?=(?:local|baixos|baix|bxs|àtic|atic|planta|pral|principal|entresol"
+               r"|entl|despatx|oficina|porta|esc)\b)", " ", d, flags=re.I)
+    return N.limpiar(d)
 
 
 def separar_municipio(texto):
@@ -77,7 +93,8 @@ class ExtractorCAT(Extractor):
         return r.get("n_mero_registre")
 
     def nombre_origen(self, r):
-        return N.limpiar(r.get("nom_de_l_entitat"))
+        """Nombre para el informe (también de los rechazados), ya con los espacios recuperados."""
+        return separar_nombre(r.get("nom_de_l_entitat") or "") or None
 
     def clasificar_ambito(self, nombre, descripcion):
         """Clasifica una entidad y transforma los errores de IA en rechazos."""
@@ -100,44 +117,50 @@ class ExtractorCAT(Extractor):
         # ------------------------------------------- localidad y dirección
         localidad = separar_municipio(r["municipi"])
         self.reparado("localidad", r["municipi"], localidad, "espacios recuperados")
-        direccion = N.separar_toponimo(r["adre_a"])
+        direccion_fuente = N.separar_toponimo(r["adre_a"])
+        direccion = separar_numeros(direccion_fuente)       # lo que se guarda ("Martí 19")
         if not localidad or not direccion:
             raise Rechazo("falta localidad" if not localidad else "falta direccion")
 
-        # ------------------------------------------------- geocodificación
-        # Al mapa se le pregunta por "calle número, CP localidad" (sin piso ni puerta)
+        # ------------------------------------- CP y coordenadas (geocodificación)
+        # Sin CP o sin coordenadas no se carga (indicación del profe). Las coordenadas solo
+        # salen del mapa, así que la dirección TIENE que encontrarse en su municipio:
+        #   1. formato del CP de la fuente ("8006" -> "08006"; "99033" o vacío -> no vale)
+        #   2. se busca "calle número, CP municipio"; si aparece en el municipio -> vale
+        #   3. si no, se busca sin el CP; si aparece en el municipio -> vale
+        #   4. si no aparece en el municipio de ninguna forma -> rechazo
+        # El CP de la fuente manda si es de la provincia donde está la dirección; si es
+        # imposible o de otra provincia, se usa el del mapa y se informa.
         cp_fuente = N.codigo_postal(r["codi_postal"])            # None si no es válido ("00800")
-        calle = direccion_para_mapa(direccion)
-        if cp_fuente:
-            geo = self.geocoder.directo(f"{calle}, {cp_fuente} {localidad}, España")
-        else:
-            geo = self.geocoder.directo(f"{calle}, {localidad}, España")
-
-        # --------------------------------------------------- código postal
         if cp_fuente:
             self.reparado("codigo_postal", r["codi_postal"], cp_fuente, "faltaba el 0 inicial")
-        # El CP del mapa solo sirve para reparar si el mapa ha encontrado la misma localidad
-        misma_localidad = bool(geo and geo["cp"]
-                               and N.sin_tildes(geo["localidad"] or "") == N.sin_tildes(localidad))
-        if cp_fuente and not (misma_localidad and geo["cp"][:2] != cp_fuente[:2]):
-            codigo_postal = cp_fuente
-        elif misma_localidad:
-            codigo_postal = geo["cp"]
-            motivo = ("el CP era de otra provincia; reparado con geocoder" if cp_fuente
-                      else "CP no válido; reparado con geocoder")
-            self.reparado("codigo_postal", r["codi_postal"], codigo_postal, motivo)
-        else:
-            raise Rechazo(f"código postal no válido: {r['codi_postal']!r}")
+        calle = direccion_para_mapa(direccion_fuente)              # sin piso ni puerta
 
-        # ----------------------------------------------------- coordenadas
-        # Solo se aceptan si el mapa contesta con un CP de la misma provincia
-        lat = lon = None
-        if not geo:
-            self.incidencia("coordenadas", "dirección no encontrada en el mapa; no se mostrará en el mapa")
-        elif geo["cp"] and geo["cp"][:2] == codigo_postal[:2]:
-            lat, lon = geo["lat"], geo["lon"]
+        def en_su_municipio(geo):
+            """El mapa ha encontrado la dirección en el municipio de la fuente (mismo nombre,
+            o exactamente el CP de la fuente) y ha dado CP y coordenadas."""
+            return bool(geo and geo.get("cp") and geo.get("lat") is not None and (
+                N.sin_tildes(geo.get("localidad") or "") == N.sin_tildes(localidad)
+                or geo["cp"] == cp_fuente))
+
+        geo = self.geocoder.directo(f"{calle}, {cp_fuente} {localidad}, España") if cp_fuente else None
+        if not en_su_municipio(geo):
+            primera = geo
+            geo = self.geocoder.directo(f"{calle}, {localidad}, España")
+            if not en_su_municipio(geo):
+                donde = (geo or primera or {}).get("direccion")
+                raise Rechazo(f"la dirección no aparece en {localidad}"
+                              + (f" (el mapa la sitúa en «{donde}»)" if donde else "")
+                              + "; sin coordenadas no se puede cargar")
+
+        if cp_fuente and cp_fuente[:2] == geo["cp"][:2]:
+            codigo_postal = cp_fuente
         else:
-            self.incidencia("coordenadas", f"el mapa devuelve otra zona ({geo['direccion']}); se carga sin coordenadas")
+            codigo_postal = geo["cp"]
+            self.reparado("codigo_postal", r["codi_postal"], codigo_postal,
+                          f"el CP {cp_fuente} es de otra provincia; se usa el del mapa" if cp_fuente
+                          else "CP no válido; se usa el del mapa")
+        lat, lon = geo["lat"], geo["lon"]
 
         # -------------------------------------------------------------- web
         url = None
