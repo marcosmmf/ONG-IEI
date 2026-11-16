@@ -80,9 +80,22 @@ que el extractor pueda rechazar el registro.
 ## Demo de la 1ª entrega
 
 El profesor quiere ver: (1) la base de datos **vacía**, (2) ejecutar la carga, (3) qué se ha llenado y cómo,
-y qué se ha rechazado. Por eso el **informe de la carga tiene que ser claro y legible** (cargados, reparados
-con antes/después y motivo, rechazados con motivo, duplicados). Hoy es solo `salida/*_informe.json`:
-pendiente mejorarlo (p. ej. resumen en consola y/o informe más legible) antes de la demo.
+y qué se ha rechazado. Guion (con las cachés del repo no hace falta Selenium ni Gemini):
+
+```bash
+python cargar.py --borrar          # 1. vaciar el almacén
+python ver_bd.py                   #    ... y enseñar que está vacío (solo provincias y ámbitos)
+python cargar.py todas --muestra   # 2. cargar la muestra: informe registro a registro
+python ver_bd.py                   # 3. enseñar las entidades cargadas (tipo, localidad, provincia, CP, lat/lon)
+```
+
+El informe sale en consola y se guarda en `salida/informe.txt`: por cada registro, **✔ cargado** (con sus
+datos, las reparaciones antes → después y su motivo, y los avisos), **✖ rechazado** (con el motivo) o
+**= duplicado**; al final, una tabla resumen por fuente. El detalle en JSON queda en `salida/<fuente>_informe.json`.
+Para navegar por la BD con ventanas: [DB Browser for SQLite](https://sqlitebrowser.org), abriendo `almacen.db`.
+
+Reglas: sin CP o sin coordenadas no se carga (indicación del profe). Los casos de la muestra y las
+decisiones están en `docs/pendiente-demo.md` y `docs/revision-mappings.md`.
 
 ## Estado y reparto
 
