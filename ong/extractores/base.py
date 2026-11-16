@@ -54,8 +54,9 @@ class Extractor:
         self._incidencias.append({"campo": campo, "motivo": motivo})
 
     def cargar(self, registros, limite=None):
+        # "registros": el resultado de cada registro en el orden de la fuente (para el informe legible)
         informe = {"fuente": self.FUENTE, "leidos": 0, "cargados": 0, "duplicados": 0,
-                   "reparados": [], "rechazados": []}
+                   "reparados": [], "rechazados": [], "registros": []}
         for registro in registros[:limite] if limite else registros:
             informe["leidos"] += 1
             self._reparaciones = []
@@ -68,14 +69,21 @@ class Extractor:
                 self._validar(e)
                 if not self.almacen.insertar_entidad(e, self.FUENTE):
                     informe["duplicados"] += 1
+                    informe["registros"].append({**ident, "resultado": "duplicado"})
                     continue
                 informe["cargados"] += 1
+                informe["registros"].append({
+                    **ident, "resultado": "cargado", "reparaciones": self._reparaciones,
+                    "incidencias": self._incidencias,
+                    "entidad": {k: e.get(k) for k in ("ambito", "localidad", "cod_provincia",
+                                                      "codigo_postal", "latitud", "longitud")}})
                 if self._reparaciones:
                     informe["reparados"].append({**ident, "reparaciones": self._reparaciones})
                 if self._incidencias:
                     informe.setdefault("incidencias", []).append({**ident, "incidencias": self._incidencias})
             except Rechazo as ex:
                 informe["rechazados"].append({**ident, "motivo": str(ex)})
+                informe["registros"].append({**ident, "resultado": "rechazado", "motivo": str(ex)})
         self.almacen.commit()
         return informe
 
