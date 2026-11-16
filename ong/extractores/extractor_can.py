@@ -116,6 +116,10 @@ class ExtractorCAN(Extractor):
         return N.limpiar(r.get("denominacion"))
 
     def transformar(self, r):
+        nombre = N.limpiar(r["denominacion"])
+        if not nombre:                      # al principio, como en CV y CAT: sin gastar consulta a Selenium
+            raise Rechazo("falta nombre")
+
         area, subarea = r["area_id"], r["subarea_id"]
         ambito = AMBITO_POR_AREA.get((area, subarea)) or AMBITO_POR_AREA.get((area, None))
         if not ambito:
@@ -124,13 +128,35 @@ class ExtractorCAN(Extractor):
         localidad = self.municipio(r["direccion_municipio_nombre"])
         provincia = r["direccion_provincia_id"]
         if provincia not in self.almacen.provincias:
-            raise Rechazo(f"provincia no válida: {provincia!r}")
+            # En toda la fuente, las 2 primeras cifras del código de municipio son la provincia
+            # (802 de 802). Si la provincia falta o no existe ('_U', '99') se deduce de ahí;
+            # geolocalizar() la confirma después: el CP del mapa tiene que ser de esa provincia.
+            municipio_id = str(r.get("direccion_municipio_id") or "")
+            deducida = municipio_id[:2] if re.fullmatch(r"\d{5}", municipio_id) else None
+            if deducida not in self.almacen.provincias:
+                raise Rechazo(f"provincia no válida: {provincia!r}")
+            antes = "vacía" if N.vacio(provincia) else f"{provincia} ({r.get('direccion_provincia_nombre')})"
+            self.reparado("provincia", antes, f"{deducida} ({self.almacen.provincias[deducida]})",
+                          f"se deduce del código de municipio {municipio_id} y lo confirma el CP del mapa")
+            provincia = deducida
+        else:
+            # El código de municipio contradice a la provincia (y al nombre del municipio):
+            # mandan nombre + provincia, que confirma el CP del mapa; se avisa del código erróneo.
+            municipio_id = str(r.get("direccion_municipio_id") or "")
+            if re.fullmatch(r"\d{5}", municipio_id) and municipio_id[:2] != provincia:
+                self.incidencia("localidad", f"el código de municipio {municipio_id} es de la provincia "
+                                             f"{municipio_id[:2]}, pero el municipio ({localidad}) y la provincia "
+                                             f"son {provincia}; se usan el municipio y la provincia (lo confirma el CP del mapa)")
 
         direccion, direccion_selenium = montar_direccion(r)
+        tipo_en_nombre, _ = separar_tipo(N.limpiar(r["direccion_nombre_via"]) or "")
+        if tipo_en_nombre and N.limpiar(r["direccion_tipo_via"]):
+            self.reparado("direccion", f"{r['direccion_tipo_via']} {r['direccion_nombre_via']}",
+                          direccion, "tipo de vía repetido")
         cp, latitud, longitud = self.geolocalizar(direccion_selenium, localidad, provincia)
 
         return {
-            "nombre": N.limpiar(r["denominacion"]),
+            "nombre": nombre,
             "ambito": ambito,
             "direccion": direccion,
             "codigo_postal": cp,
@@ -151,7 +177,8 @@ class ExtractorCAN(Extractor):
         m = re.fullmatch(r"(.+) (La|El|Los|Las)", nombre)
         if m:
             nombre = f"{m.group(2)} {m.group(1)}"
-            self.reparado("localidad", valor, nombre, "artículo al final")
+        # "Laguna (La)" -> "La Laguna"; "Oliva La" -> "La Oliva"
+        self.reparado("localidad", valor, nombre, "artículo al final pasado delante")
         return nombre
 
     def geolocalizar(self, direccion, localidad, provincia):
