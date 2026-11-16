@@ -311,5 +311,55 @@
   "lat": "42.171871",
   "lon": "3.074145",
   "direccion": "Calle Ajuntament, 4, 17472 L'armentera, España"
+ },
+ "D|Calle Bravo Murillo 15, 35003, España": {
+  "lat": "29.0017875",
+  "lon": "-13.5442613",
+  "direccion": "Calle Bravo Murillo, 35507 Teguise, España"
+ },
+ "D|Calle Ibaute, 38111, España": {
+  "lat": "28.4193693",
+  "lon": "-16.3067403",
+  "direccion": "Calle Ibaute, 38111 Santa Cruz de Tenerife, España"
+ },
+ "D|Calle Veneguera 31, 35009, España": {
+  "lat": "28.1500789",
+  "lon": "-15.4273829",
+  "direccion": "Calle Veneguera, 31, 35009 Las Palmas de Gran Canaria, España"
+ },
+ "D|Calle George Pire 2, 35015, España": {
+  "lat": "28.0940247",
+  "lon": "-15.4279324",
+  "direccion": "Calle George Pire, 35015 Las Palmas de Gran Canaria, España"
+ },
+ "D|Calle Mencey Imobac 29, 38008, España": {
+  "lat": "28.4703277",
+  "lon": "-16.2731785",
+  "direccion": "Calle Mencey Imobac, 29, 38008 Santa Cruz de Tenerife, España"
+ },
+ "D|Calle Leon Y Castillo 421- Atico B, 35007, España": {
+  "lat": "28.0997",
+  "lon": "-15.4134",
+  "direccion": "35007, España"
+ },
+ "D|Calle Leon Y Castillo 49. 1º Planta, 35003, España": {
+  "lat": "28.0997",
+  "lon": "-15.4134",
+  "direccion": "35003, España"
+ },
+ "D|Paseo Tomas Morales 18, 35004, España": {
+  "lat": "28.1087539",
+  "lon": "-15.4205609",
+  "direccion": "Paseo de Tomás Morales, 18, 35002 Las Palmas de Gran Canaria, España"
+ },
+ "D|Calle Real 132, Tacoronte, Santa Cruz de Tenerife, España": {
+  "lat": "28.4615547",
+  "lon": "-16.4133777",
+  "direccion": "Calle Real Orotava, El Pastel, 38359 El Sauzal, España"
+ },
+ "D|Calle Almorejo 2, Arona, Santa Cruz de Tenerife, España": {
+  "lat": "28.0499481",
+  "lon": "-16.6769081",
+  "direccion": "Calle Almorejo, 38627 Arona, España"
  }
 }
