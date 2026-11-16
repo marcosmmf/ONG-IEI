@@ -85,11 +85,13 @@ y qué se ha rechazado. Guion (con las cachés del repo no hace falta Selenium n
 ```bash
 python cargar.py --borrar          # 1. vaciar el almacén
 python ver_bd.py                   #    ... y enseñar que está vacío (solo provincias y ámbitos)
-python cargar.py todas --muestra   # 2. cargar la muestra: informe registro a registro
+python cargar.py todas --muestra --abrir   # 2. cargar la muestra: informe en consola y en el navegador
 python ver_bd.py                   # 3. enseñar las entidades cargadas (tipo, localidad, provincia, CP, lat/lon)
 ```
 
-El informe sale en consola y se guarda en `salida/informe.txt`: por cada registro, **✔ cargado** (con sus
+El informe sale en consola (con colores) y se guarda en `salida/informe.txt` y en `salida/informe.html`
+(página con tarjetas de resumen por fuente y filtros: cargados, rechazados, duplicados, con reparaciones, con avisos;
+`--abrir` la abre en el navegador): por cada registro, **✔ cargado** (con sus
 datos, las reparaciones antes → después y su motivo, y los avisos), **✖ rechazado** (con el motivo) o
 **= duplicado**; al final, una tabla resumen por fuente. El detalle en JSON queda en `salida/<fuente>_informe.json`.
 Para navegar por la BD con ventanas: [DB Browser for SQLite](https://sqlitebrowser.org), abriendo `almacen.db`.

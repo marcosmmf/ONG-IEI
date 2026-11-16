@@ -7,13 +7,17 @@ Ejemplos:
     python cargar.py can --geo             # usa Selenium para lo que no esté en caché (lento)
     python cargar.py cat --limite 20       # solo los 20 primeros registros (para probar)
     python cargar.py todas --borrar --muestra   # demo: carga datos/muestra/ (12 por fuente)
+    python cargar.py todas --muestra --abrir    # ... y abre el informe HTML en el navegador
 
-Al terminar se escribe en consola el informe registro a registro (cargados con sus datos,
-reparados con antes/después y motivo, avisos, rechazados con motivo y duplicados) y se guarda
-en salida/informe.txt; el detalle en JSON queda en salida/<fuente>_informe.json.
+Al terminar se escribe en consola (con colores) el informe registro a registro (cargados con sus
+datos, reparados con antes/después y motivo, avisos, rechazados con motivo y duplicados) y se
+guarda en salida/informe.txt y salida/informe.html (con resumen y filtros); el detalle en JSON
+queda en salida/<fuente>_informe.json.
 """
 import argparse
 import json
+import sys
+import webbrowser
 from pathlib import Path
 
 from ong.comun import informe as I
@@ -45,7 +49,9 @@ def main():
     p.add_argument("--visible", action="store_true", help="ver el navegador de Selenium")
     p.add_argument("--limite", type=int, help="cargar solo los N primeros registros de cada fuente")
     p.add_argument("--muestra", action="store_true", help="cargar la muestra de datos/muestra/ (demo)")
+    p.add_argument("--abrir", action="store_true", help="abrir salida/informe.html en el navegador al terminar")
     args = p.parse_args()
+    color = sys.stdout.isatty()                  # colores solo en la terminal, no al redirigir a un fichero
     if not args.fuentes and not args.borrar:
         p.error("indica qué fuentes cargar (cv, cat, can o todas), o --borrar para vaciar el almacén")
 
@@ -72,16 +78,22 @@ def main():
             (SALIDA / f"{nombre}_informe.json").write_text(
                 json.dumps(informe, ensure_ascii=False, indent=2), encoding="utf-8")
             informes.append(informe)
-            texto.append(I.texto(informe))
-            print(texto[-1])
+            texto.append(I.texto(informe))                       # sin colores, para el .txt
+            print(I.texto(informe, color=color))
     finally:
         geocoder.cerrar()
         almacen.cerrar()
 
+    print(I._c("═══ Resumen de la carga ═══", "negrita", color=color))
+    print(I.tabla_resumen(informes, color=color))
     final = "═══ Resumen de la carga ═══\n" + I.tabla_resumen(informes)
-    print(final)
     (SALIDA / "informe.txt").write_text("\n".join(texto) + "\n" + final, encoding="utf-8")
-    print("Informe guardado en salida/informe.txt · ver la BD: python ver_bd.py")
+    pagina = SALIDA / "informe.html"
+    pagina.write_text(I.html(informes, "Informe de carga" + (" (muestra)" if args.muestra else "")),
+                      encoding="utf-8")
+    print("Informe guardado en salida/informe.txt y salida/informe.html · ver la BD: python ver_bd.py")
+    if args.abrir:
+        webbrowser.open(pagina.resolve().as_uri())
 
 
 if __name__ == "__main__":
