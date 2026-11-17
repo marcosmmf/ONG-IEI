@@ -38,14 +38,16 @@ class ExtractorCVTests(unittest.TestCase):
         ).fetchone()
         self.assertEqual(fila[:4], ("46701", "Entidad Privada - PERSONAS MAYORES", None, "Gandia"))
         self.assertNotEqual(fila[4], 46131)
-        self.assertEqual(informe["reparados"][0]["reparaciones"][0]["campo"], "codigo_postal")
+        # La fuente no tiene CP: obtenerlo con Selenium no es una reparación
+        self.assertEqual(informe["reparados"], [])
+        self.assertEqual(informe["registros"][0]["completados"], {"codigo_postal": "Selenium"})
         self.geo.directo.assert_not_called()
 
     def test_recupera_direccion_vacia_y_la_informa(self):
         informe = self.extractor.cargar([{**self.registro, "domici": ""}])
         self.assertEqual(informe["cargados"], 1)
         campos = {r["campo"] for r in informe["reparados"][0]["reparaciones"]}
-        self.assertEqual(campos, {"direccion", "codigo_postal"})
+        self.assertEqual(campos, {"direccion"})
 
     def test_respuesta_solo_municipio_no_repara_direccion(self):
         for direccion in (None, "Gandia, Valencia, España", "46701 Gandia, España"):
@@ -119,7 +121,7 @@ class ExtractorCVTests(unittest.TestCase):
     def test_respuesta_directa_solo_municipio_no_atribuye_cp_al_centro(self):
         self.geo.inverso.return_value = None
         self.geo.directo.return_value = {**self.respuesta, "direccion": "46701 Gandia, España"}
-        with self.assertRaisesRegex(Rechazo, "dirección verificable"):
+        with self.assertRaisesRegex(Rechazo, "solo identifica el municipio"):
             self.extractor.transformar(self.registro)
 
     def test_punto_generico_solo_usa_geocodificacion_directa(self):

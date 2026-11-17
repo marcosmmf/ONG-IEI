@@ -118,10 +118,10 @@ class ExtractorCV(Extractor):
         if not re.fullmatch(r"[0-9]{5}", codigo_ine) or provincia not in self.almacen.provincias:
             raise Rechazo(f"código INE de municipio no válido: {r.get('cod_ine_mun')!r}")
         # La provincia sale del código INE (oficial); si el texto de la fuente dice otra, se informa.
+        # Se anota al final, cuando Selenium ya ha dado el CP que lo confirma.
         texto_provincia = N.limpiar(r.get("provincia"))
-        if texto_provincia and not self._nombres(texto_provincia) & self._nombres(self.almacen.provincias[provincia]):
-            self.reparado("provincia", texto_provincia, self.almacen.provincias[provincia],
-                          f"no coincide con el código INE del municipio ({codigo_ine}); se usa el INE")
+        provincia_contradicha = bool(texto_provincia and not self._nombres(texto_provincia)
+                                     & self._nombres(self.almacen.provincias[provincia]))
 
         lat = lon = None
         try:
@@ -144,12 +144,15 @@ class ExtractorCV(Extractor):
         # provincia, aunque el geocoder nombre una pedanía o urbanización ("El Perelló" en Sueca).
         if resultado and self._cp(resultado.get("cp"), provincia):
             if not self._resultado_coherente(resultado, provincia, localidad):
-                self.incidencia("localidad", f"el mapa nombra '{resultado.get('localidad')}' (núcleo de "
-                                             f"{localidad}); se acepta el CP por las coordenadas oficiales")
+                self.incidencia("localidad", f"con las coordenadas de la fuente, Selenium nombra "
+                                             f"'{resultado.get('localidad')}' en vez de {localidad} (pedanía o "
+                                             f"urbanización del municipio); se acepta su CP {resultado.get('cp')} "
+                                             f"porque es de la misma provincia que el código INE de la fuente ({provincia})")
             if not direccion:
                 direccion = self._direccion_recuperada(resultado, localidad, self.almacen.provincias[provincia])
                 if direccion:
-                    self.reparado("direccion", r.get("domici"), direccion, "geocodificación inversa")
+                    self.reparado("direccion", r.get("domici"), direccion,
+                                  "la fuente no trae dirección; Selenium la obtiene a partir de las coordenadas")
         else:
             resultado = None
 
@@ -169,26 +172,40 @@ class ExtractorCV(Extractor):
                                                   f"{self.almacen.provincias[provincia]}, España")
                 aproximada = True
             if not self._resultado_coherente(resultado, provincia, localidad):
-                raise Rechazo("no se obtuvo un código postal válido y coherente con la localidad y provincia")
+                raise Rechazo("Selenium no da un código postal de esta localidad y provincia")
             if not self._direccion_recuperada(resultado, localidad, self.almacen.provincias[provincia]):
-                raise Rechazo("la geocodificación directa no identifica una dirección verificable")
+                raise Rechazo("Selenium no encuentra la dirección (solo identifica el municipio)")
             nuevas_lat, nuevas_lon = self._coordenadas(resultado.get("lat"), resultado.get("lon"))
             lat_generica, lon_generica = utm_a_latlon(*self.COORDENADA_GENERICA)
             if nuevas_lat is not None and abs(nuevas_lat - lat_generica) < 0.000001 and abs(nuevas_lon - lon_generica) < 0.000001:
-                raise Rechazo("la geocodificación devuelve el punto genérico de València; CP no verificable")
+                raise Rechazo("Selenium devuelve el punto genérico de València; el CP no se puede verificar")
             if nuevas_lat is not None:
                 utm_fuente = f"UTM ({r.get('x_25830') or 'vacía'}, {r.get('y_25830') or 'vacía'})"
+                if N.vacio(r.get("x_25830")) or N.vacio(r.get("y_25830")):
+                    problema = "faltan coordenadas en la fuente"
+                elif lat is None:
+                    problema = "coordenadas imposibles en la fuente"
+                else:
+                    problema = "en el punto de la fuente Selenium no da un CP de la provincia"
                 self.reparado("coordenadas", {"lat": lat, "lon": lon} if lat is not None else utm_fuente,
                               {"lat": nuevas_lat, "lon": nuevas_lon},
-                              "geocodificación directa sin el punto kilométrico" if aproximada
-                              else "geocodificación directa")
+                              f"{problema}; se obtienen con Selenium a partir de la dirección"
+                              + (" (sin el punto kilométrico, que le confunde)" if aproximada else ""))
                 if aproximada:
                     self.incidencia("coordenadas", "coordenadas aproximadas: punto de la carretera, "
                                                    "no del kilómetro exacto")
             lat, lon = nuevas_lat, nuevas_lon
 
         codigo_postal = self._cp(resultado.get("cp"), provincia)
-        self.reparado("codigo_postal", None, codigo_postal, "obtenido mediante geocodificación")
+        if provincia_contradicha:
+            # Manda la mayoría: código INE + nombre del municipio, y lo confirma el CP de Selenium
+            # (si el INE estuviera mal, el CP no sería de esa provincia y se habría rechazado).
+            self.reparado("provincia", texto_provincia, self.almacen.provincias[provincia],
+                          f"el texto de la provincia contradice al resto del registro: el código INE "
+                          f"{codigo_ine} (2 primeras cifras: {provincia}) y el municipio {localidad} son de "
+                          f"{self.almacen.provincias[provincia]}, y el CP que da Selenium ({codigo_postal}) "
+                          f"también es de la {provincia}; se usa esa provincia")
+        self.completado("Selenium", "codigo_postal")          # la fuente no tiene CP: no es una reparación
 
         descripcion = " - ".join(p for p in (N.limpiar(r.get("leyenda")), sector) if p) or None
         email = N.limpiar(r.get("email"))

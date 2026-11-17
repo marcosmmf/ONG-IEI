@@ -11,6 +11,18 @@ from datetime import datetime
 NOMBRES = {"CV": "Comunitat Valenciana", "CAT": "Catalunya", "CAN": "Canarias"}
 ANCHO_NOMBRE = 60
 
+# Qué datos esenciales (tipo, dirección, localidad, provincia, CP, coordenadas) trae cada fuente
+# y cómo se consiguen los que no trae. Sale en la cabecera de cada fuente del informe.
+TRAE = {
+    "CV": ("tipo (del tipo de centro o sector), dirección, localidad, provincia (código INE del municipio) "
+           "y coordenadas (UTM, se pasan a latitud/longitud)",
+           "código postal → Selenium a partir de las coordenadas de la fuente"),
+    "CAT": ("dirección, localidad y código postal (la provincia sale de las 2 primeras cifras del CP)",
+            "coordenadas → Selenium a partir de la dirección; tipo → se clasifica con IA (Gemini)"),
+    "CAN": ("tipo (del área y subárea), dirección, localidad y provincia",
+            "código postal y coordenadas → Selenium a partir de la dirección"),
+}
+
 # Colores ANSI para la terminal (solo si se pide color=True; el .txt va sin colores)
 _ANSI = {"verde": "32", "rojo": "31", "gris": "90", "azul": "36", "amarillo": "33",
          "negrita": "1", "tenue": "2"}
@@ -29,6 +41,20 @@ def _valor(v):
     if isinstance(v, dict) and {"lat", "lon"} <= v.keys():
         return "—" if v["lat"] is None else f"{v['lat']}, {v['lon']}"
     return repr(v) if isinstance(v, str) else str(v)
+
+
+def _datos(r):
+    """[(etiqueta, valor)] de una entidad cargada; los datos que no trae la fuente llevan su origen."""
+    e, origen = r["entidad"], r.get("completados") or {}
+
+    def de(campo, valor):
+        return f"{valor} ({origen[campo]})" if campo in origen else valor
+
+    return [("Tipo", de("ambito", e["ambito"])), ("Dirección", e.get("direccion") or "—"),
+            ("Localidad", e["localidad"]),
+            ("Provincia", f"{e.get('provincia') or ''} ({e['cod_provincia']})".strip()),
+            ("CP", de("codigo_postal", e["codigo_postal"])),
+            ("Coordenadas", de("coordenadas", f"{e['latitud']:.5f}, {e['longitud']:.5f}"))]
 
 
 def _nombre(texto):
@@ -50,8 +76,10 @@ def resumen(informe, color=False):
 def texto(informe, color=False):
     """Informe de una fuente, registro a registro (color=True para la terminal)."""
     fuente = informe["fuente"]
-    lineas = [_c(f"═══ {NOMBRES.get(fuente, fuente)} ({fuente}) ═══", "negrita", color=color),
-              resumen(informe, color), ""]
+    lineas = [_c(f"═══ {NOMBRES.get(fuente, fuente)} ({fuente}) ═══", "negrita", color=color)]
+    if fuente in TRAE:
+        lineas += [f"Trae:    {TRAE[fuente][0]}", f"No trae: {TRAE[fuente][1]}"]
+    lineas += [resumen(informe, color), ""]
     for r in informe.get("registros", []):
         cabecera = f"[{r['id_origen']}] {_nombre(r['nombre'])}"
         if r["resultado"] == "rechazado":
@@ -62,11 +90,8 @@ def texto(informe, color=False):
             lineas.append("        " + _c("ya cargado antes (mismo nombre, dirección y localidad); "
                                           "no se inserta otra vez", "gris", color=color))
         else:
-            e = r["entidad"]
             lineas.append("  " + _c("✔ CARGADO   ", "verde", "negrita", color=color) + "  " + cabecera)
-            lineas.append("        " + _c(f"{e['ambito']} · {e['localidad']} (prov. {e['cod_provincia']}) · "
-                                          f"CP {e['codigo_postal']} · {e['latitud']:.5f}, {e['longitud']:.5f}",
-                                          "tenue", color=color))
+            lineas.append("        " + _c(" · ".join(f"{k}: {v}" for k, v in _datos(r)), "tenue", color=color))
             for rep in r["reparaciones"]:
                 lineas.append("        " + _c("reparado", "azul", color=color) + f"  {rep['campo']}: "
                               f"{_valor(rep['antes'])} → {_valor(rep['despues'])}"
@@ -118,7 +143,9 @@ border-radius:10px;padding:10px 14px;margin:8px 0}
 .reg.cargado{border-left-color:var(--ok)}.reg.rechazado{border-left-color:var(--ko)}
 .reg.duplicado{border-left-color:var(--dup);opacity:.75}
 .cab{display:flex;flex-wrap:wrap;align-items:center;gap:8px}.id{color:var(--muted);font-size:13px}
-.nombre{font-weight:600}.datos{color:var(--muted);font-size:13px;margin-top:4px}
+.nombre{font-weight:600}.datos{color:var(--muted);font-size:13px;margin-top:4px}.datos b{color:var(--text);font-weight:600}
+.trae{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 14px;margin:0 0 12px;font-size:14px}
+.trae p{margin:4px 0}
 ul{margin:6px 0 0;padding:0;list-style:none}li{margin:3px 0;font-size:14px}
 li .chip{font-size:11px;padding:1px 8px;margin-right:6px}
 .antes{text-decoration:line-through;color:var(--muted)}.motivo{color:var(--muted)}
@@ -155,9 +182,8 @@ def _registro_html(r):
     elif r["resultado"] == "duplicado":
         partes.append('<div class="datos">Ya cargado antes (mismo nombre, dirección y localidad); no se inserta otra vez.</div>')
     else:
-        e = r["entidad"]
-        partes.append(f'<div class="datos">{_e(e["ambito"])} · {_e(e["localidad"])} (prov. {_e(e["cod_provincia"])}) · '
-                      f'CP {_e(e["codigo_postal"])} · {e["latitud"]:.5f}, {e["longitud"]:.5f}</div>')
+        partes.append('<div class="datos">' + " · ".join(f"<b>{_e(k)}:</b> {_e(v)}" for k, v in _datos(r))
+                      + "</div>")
         if rep or inc:
             partes.append("<ul>")
             for x in rep:
@@ -187,7 +213,10 @@ def html(informes, titulo="Informe de carga"):
             f'<span class="chip av">{len(i.get("incidencias", []))} con avisos</span></div></div>')
     secciones = []
     for i in informes:
+        trae = TRAE.get(i["fuente"])
         secciones.append(f'<section><h2>{_e(NOMBRES.get(i["fuente"], i["fuente"]))} ({_e(i["fuente"])})</h2>'
+                         + (f'<div class="trae"><p><b>Trae:</b> {_e(trae[0])}.</p>'
+                            f'<p><b>No trae:</b> {_e(trae[1])}.</p></div>' if trae else "")
                          + "".join(_registro_html(r) for r in i.get("registros", []))
                          + '<p class="vacio" hidden>Ninguno en esta fuente.</p></section>')
     return f"""<!doctype html>

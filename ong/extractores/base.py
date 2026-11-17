@@ -9,6 +9,8 @@ del esquema global:
 
 Si un dato no se puede arreglar -> raise Rechazo("motivo")      (registro rechazado)
 Si se arregla algo           -> self.reparado(campo, antes, despues, motivo)
+Si un dato que la fuente NO trae se obtiene de fuera -> self.completado("Selenium", campo)
+   (no es una reparación: forma parte del mapping; en el informe sale "(Selenium)")
 
 La clase base se encarga de validar, insertar en el almacén y hacer el informe
 (cargados / reparados / rechazados / duplicados), que es lo que mostrará el
@@ -29,6 +31,7 @@ class Extractor:
         self.geocoder = geocoder
         self._reparaciones = []
         self._incidencias = []
+        self._completados = {}
 
     # ---------------------------------------------------------- a implementar
     def transformar(self, registro):
@@ -48,10 +51,17 @@ class Extractor:
         if antes != despues:
             self._reparaciones.append({"campo": campo, "antes": antes, "despues": despues, "motivo": motivo})
 
-    # ------------------------------------------------------------------ carga
     def incidencia(self, campo, motivo):
         """Registra una limitación del registro cargado sin contarla como reparación."""
         self._incidencias.append({"campo": campo, "motivo": motivo})
+
+    def completado(self, origen, *campos):
+        """Marca datos que la fuente no trae y se obtienen de fuera ("Selenium", "IA Gemini").
+        No es una reparación (no había nada mal en la fuente): en el informe sale el origen."""
+        for campo in campos:
+            self._completados[campo] = origen
+
+    # ------------------------------------------------------------------ carga
 
     def cargar(self, registros, limite=None):
         # "registros": el resultado de cada registro en el orden de la fuente (para el informe legible)
@@ -61,8 +71,10 @@ class Extractor:
             informe["leidos"] += 1
             self._reparaciones = []
             self._incidencias = []
+            self._completados = {}
             ident = {"id_origen": self.id_origen(registro),
                      "nombre": self.nombre_origen(registro) or "(sin nombre)"}
+            sin_consultar = self._sin_consultar()
             try:
                 e = self.transformar(registro)
                 ident["nombre"] = e.get("nombre") or ident["nombre"]
@@ -74,18 +86,28 @@ class Extractor:
                 informe["cargados"] += 1
                 informe["registros"].append({
                     **ident, "resultado": "cargado", "reparaciones": self._reparaciones,
-                    "incidencias": self._incidencias,
-                    "entidad": {k: e.get(k) for k in ("ambito", "localidad", "cod_provincia",
-                                                      "codigo_postal", "latitud", "longitud")}})
+                    "incidencias": self._incidencias, "completados": self._completados,
+                    "entidad": {**{k: e.get(k) for k in ("ambito", "direccion", "localidad", "cod_provincia",
+                                                         "codigo_postal", "latitud", "longitud")},
+                                "provincia": self.almacen.provincias.get(e["cod_provincia"])}})
                 if self._reparaciones:
                     informe["reparados"].append({**ident, "reparaciones": self._reparaciones})
                 if self._incidencias:
                     informe.setdefault("incidencias", []).append({**ident, "incidencias": self._incidencias})
             except Rechazo as ex:
-                informe["rechazados"].append({**ident, "motivo": str(ex)})
-                informe["registros"].append({**ident, "resultado": "rechazado", "motivo": str(ex)})
+                motivo = str(ex)
+                if self._sin_consultar() > sin_consultar:
+                    # Selenium no llegó a preguntar: que el informe no lo confunda con "no existe"
+                    motivo = "la dirección no está en la caché y Selenium está desactivado (--solo-cache)"
+                informe["rechazados"].append({**ident, "motivo": motivo})
+                informe["registros"].append({**ident, "resultado": "rechazado", "motivo": motivo})
         self.almacen.commit()
         return informe
+
+    def _sin_consultar(self):
+        """Búsquedas del geocoder que faltaban en la caché y no se hicieron (--solo-cache)."""
+        n = getattr(self.geocoder, "sin_consultar", 0)
+        return n if isinstance(n, int) else 0
 
     def _validar(self, e):
         """Comprobaciones comunes a las tres fuentes (lo que necesita el buscador)."""
@@ -106,6 +128,6 @@ class Extractor:
 
         lat, lon = e.get("latitud"), e.get("longitud")
         if lat is None or lon is None:
-            raise Rechazo("faltan coordenadas: no se pudo localizar la dirección en el mapa")
+            raise Rechazo("faltan coordenadas: Selenium no ha localizado la dirección")
         if not (27 <= lat <= 44 and -19 <= lon <= 5):
             raise Rechazo(f"coordenadas fuera de España: {lat}, {lon}")
