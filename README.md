@@ -77,24 +77,17 @@ en la caché, no se realiza otra llamada a la API; si Gemini falla o devuelve
 un ámbito que no existe en la tabla `ambito`, la clase informa del error para
 que el extractor pueda rechazar el registro.
 
-## Demo de la 1ª entrega
+## Demo de la 1ª entrega con solo los extractores
 
-El profesor quiere ver: (1) la base de datos **vacía**, (2) ejecutar la carga, (3) qué se ha llenado y cómo,
-y qué se ha rechazado. Guion (con las cachés del repo no hace falta Selenium ni Gemini):
+Con el entorno virtual activo, desde la raíz del repositorio:
 
 ```bash
-python cargar.py --borrar          # 1. vaciar el almacén
-python ver_bd.py                   #    ... y enseñar que está vacío (solo provincias y ámbitos)
-python cargar.py todas --muestra --abrir   # 2. cargar la muestra: informe en consola y en el navegador
-python ver_bd.py                   # 3. enseñar las entidades cargadas (tipo, localidad, provincia, CP, lat/lon)
+python demo_extractores.py
 ```
 
-El informe sale en consola (con colores) y se guarda en `salida/informe.txt` y en `salida/informe.html`
-(página con tarjetas de resumen por fuente y filtros: cargados, rechazados, duplicados, con reparaciones, con avisos;
-`--abrir` la abre en el navegador): por cada registro, **✔ cargado** (con sus
-datos, las reparaciones antes → después y su motivo, y los avisos), **✖ rechazado** (con el motivo) o
-**= duplicado**; al final, una tabla resumen por fuente. El detalle en JSON queda en `salida/<fuente>_informe.json`.
-Para navegar por la BD con ventanas: [DB Browser for SQLite](https://sqlitebrowser.org), abriendo `almacen.db`.
+1. El script vacía las tablas de entidades y localidades de su base de demostración, `salida/extractores/demo.db`, y muestra ambos recuentos. Provincias y ámbitos son catálogos de referencia.
+2. Cada extractor recibe directamente su lista JSON de `datos/muestra/extractores/`, con 12 registros y los campos de su fuente. Las cachés del repositorio cubren esta muestra.
+3. La consola muestra el resumen por fuente y el recuento final de SQLite. Abre `salida/extractores/informe.html` para enseñar las reparaciones, avisos, duplicados y motivos de rechazo. Puedes inspeccionar `demo.db` con DB Browser for SQLite.
 
 Reglas: sin CP o sin coordenadas no se carga (indicación del profe). Los casos de la muestra y las
 decisiones están en `docs/pendiente-demo.md` y `docs/revision-mappings.md`.
