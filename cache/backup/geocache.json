@@ -361,5 +361,15 @@
   "lat": "28.0499481",
   "lon": "-16.6769081",
   "direccion": "Calle Almorejo, 38627 Arona, España"
+ },
+ "D|Carrer de Josep Aguilera i Martí 19, 17003 Girona, España": {
+  "lat": "41.9651583",
+  "lon": "2.8200956",
+  "direccion": "Carrer de Josep Aguilera i Martí, 19, 17003 Gerona, España"
+ },
+ "D|Carrer de Llibertat 47, 17012 Barcelona, España": {
+  "lat": "41.5713276",
+  "lon": "2.0188911",
+  "direccion": "Carrer de la Llibertat, 47, 08226 Terrassa, España"
  }
 }

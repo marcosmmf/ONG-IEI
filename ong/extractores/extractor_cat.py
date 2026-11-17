@@ -138,10 +138,17 @@ class ExtractorCAT(Extractor):
             self.reparado("codigo_postal", r["codi_postal"], cp_fuente, "faltaba el 0 inicial")
         calle = direccion_para_mapa(direccion_fuente)              # sin piso ni puerta
 
+        def con_calle(geo):
+            """La respuesta nombra una calle. Si solo dice el CP o el municipio ('17003, España',
+            'Girona, Cataluña, España'), sus coordenadas son el centro de esa zona, no la dirección."""
+            primera_parte = re.sub(r"\b\d{5}\b", "", (geo.get("direccion") or "").split(",")[0]).strip()
+            return bool(primera_parte) and N.sin_tildes(primera_parte) not in {
+                N.sin_tildes(localidad), N.sin_tildes(geo.get("localidad") or ""), "espana", "spain"}
+
         def en_su_municipio(geo):
-            """El mapa ha encontrado la dirección en el municipio de la fuente (mismo nombre,
+            """El mapa ha encontrado la calle en el municipio de la fuente (mismo nombre,
             o exactamente el CP de la fuente) y ha dado CP y coordenadas."""
-            return bool(geo and geo.get("cp") and geo.get("lat") is not None and (
+            return bool(geo and geo.get("cp") and geo.get("lat") is not None and con_calle(geo) and (
                 N.sin_tildes(geo.get("localidad") or "") == N.sin_tildes(localidad)
                 or geo["cp"] == cp_fuente))
 
@@ -149,6 +156,15 @@ class ExtractorCAT(Extractor):
         if not en_su_municipio(geo):
             primera = geo
             geo = self.geocoder.directo(f"{calle}, {localidad}, España")
+            m = re.match(r"(?i)carrer\s+(?!de\b|del\b|dels\b|d['’])(.+)", calle)
+            if not en_su_municipio(geo) and m:
+                # 'Carrer Josep Aguilera i Martí 19' no lo encuentra; 'Carrer de Josep Aguilera i Martí 19'
+                # sí. Solo vale si el mapa devuelve esa misma calle (no otra parecida).
+                nombre_calle = N.sin_tildes(re.sub(r"\s*\d+\s*$", "", m.group(1)))
+                otra = self.geocoder.directo(f"Carrer de {m.group(1)}, "
+                                             f"{cp_fuente + ' ' if cp_fuente else ''}{localidad}, España")
+                if en_su_municipio(otra) and nombre_calle in N.sin_tildes(otra["direccion"]):
+                    geo = otra
             if not en_su_municipio(geo):
                 donde = (geo or primera or {}).get("direccion")
                 raise Rechazo(f"Selenium no encuentra la dirección en {localidad}"

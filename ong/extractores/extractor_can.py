@@ -191,8 +191,9 @@ class ExtractorCAN(Extractor):
         return nombre
 
     def geolocalizar(self, direccion, localidad, provincia):
-        """Pregunta a Selenium por la dirección completa. Solo se acepta si devuelve
-        un CP de la misma provincia que dice la fuente; si no, se rechaza."""
+        """Pregunta a Selenium por la dirección completa. Solo se acepta si devuelve un CP de la
+        misma provincia que dice la fuente y la dirección está en el municipio (o es la misma calle);
+        si no, se rechaza."""
         nombre_provincia = self.almacen.provincias[provincia]
         if N.sin_tildes(nombre_provincia) == N.sin_tildes(localidad):     # "Madrid, Madrid" le confunde
             consulta = f"{direccion}, {localidad}, España"
@@ -201,6 +202,16 @@ class ExtractorCAN(Extractor):
         resultado = self.geocoder.directo(consulta)
         if not resultado or not resultado["cp"]:
             raise Rechazo("Selenium no encuentra la dirección: sin CP ni coordenadas no se puede cargar")
+        # El mapa tiene que confirmar el municipio o, si nombra un núcleo ('La Cuesta' en La Laguna),
+        # la misma calle. Si da otra calle en otro municipio ('Calle Real Orotava, 38359 El Sauzal' para
+        # 'Calle Real 132, Tacoronte'), su CP y sus coordenadas no son de esta dirección.
+        mismo_municipio = N.sin_tildes(resultado["localidad"] or "") == N.sin_tildes(localidad)
+        calle = N.sin_tildes(separar_tipo(re.sub(r"\s+\S*\d\S*$", "", direccion))[1])
+        misma_calle = any(N.sin_tildes(separar_tipo(parte.strip())[1]) == calle
+                          for parte in resultado["direccion"].split(","))
+        if not (mismo_municipio or misma_calle):
+            raise Rechazo(f"Selenium sitúa la dirección en otra calle y otro municipio "
+                          f"(«{resultado['direccion']}»); sin CP ni coordenadas fiables no se puede cargar")
         if resultado["cp"][:2] != provincia:
             raise Rechazo(f"el CP que da Selenium ({resultado['cp']}) no es de la provincia {provincia}")
         return resultado["cp"], resultado["lat"], resultado["lon"]
