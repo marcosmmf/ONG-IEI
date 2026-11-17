@@ -78,18 +78,17 @@ en la caché, no se realiza otra llamada a la API; si Gemini falla o devuelve
 un ámbito que no existe en la tabla `ambito`, la clase informa del error para
 que el extractor pueda rechazar el registro.
 
-## Demo de la 1ª entrega con solo los extractores
+## Demo de la 1ª entrega
 
-Con el entorno virtual activo, desde la raíz del repositorio:
+El profesor quiere ver: (1) la base de datos **vacía**, (2) ejecutar la carga, (3) qué se ha llenado y cómo,
+y qué se ha rechazado. Guion (con las cachés del repo no hace falta Selenium ni Gemini):
 
 ```bash
-python cargar.py --restaurar-cache
-python demo_extractores.py
+python cargar.py --borrar          # 1. vaciar el almacén
+python ver_bd.py                   #    ... y enseñar que está vacío (solo provincias y ámbitos)
+python cargar.py todas --muestra --abrir   # 2. cargar la muestra: informe en consola y en el navegador
+python ver_bd.py                   # 3. enseñar las entidades cargadas (tipo, localidad, provincia, CP, lat/lon)
 ```
-
-1. El script vacía las tablas de entidades y localidades de su base de demostración, `salida/extractores/demo.db`, y muestra ambos recuentos. Provincias y ámbitos son catálogos de referencia.
-2. Cada extractor recibe directamente su lista JSON de `datos/muestra/extractores/`, con 12 registros y los campos de su fuente. Las cachés del repositorio cubren esta muestra.
-3. La consola muestra el resumen por fuente y el recuento final de SQLite. Abre `salida/extractores/informe.html` para enseñar las reparaciones, avisos, duplicados y motivos de rechazo. Puedes inspeccionar `demo.db` con DB Browser for SQLite.
 
 ### Consola de opciones (`python demo.py`) o comandos a mano
 
