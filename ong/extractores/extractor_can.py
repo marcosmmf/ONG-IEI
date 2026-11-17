@@ -127,6 +127,7 @@ class ExtractorCAN(Extractor):
 
         localidad = self.municipio(r["direccion_municipio_nombre"])
         provincia = r["direccion_provincia_id"]
+        nota = None         # reparación / aviso de la provincia: se escribe cuando Selenium da el CP
         if provincia not in self.almacen.provincias:
             # En toda la fuente, las 2 primeras cifras del código de municipio son la provincia
             # (802 de 802). Si la provincia falta o no existe ('_U', '99') se deduce de ahí;
@@ -136,17 +137,22 @@ class ExtractorCAN(Extractor):
             if deducida not in self.almacen.provincias:
                 raise Rechazo(f"provincia no válida: {provincia!r}")
             antes = "vacía" if N.vacio(provincia) else f"{provincia} ({r.get('direccion_provincia_nombre')})"
-            self.reparado("provincia", antes, f"{deducida} ({self.almacen.provincias[deducida]})",
-                          f"se deduce del código de municipio {municipio_id} y lo confirma el CP del mapa")
+            nota = lambda cp, p=deducida, m=municipio_id, antes=antes: self.reparado(
+                "provincia", antes, f"{p} ({self.almacen.provincias[p]})",
+                f"la provincia de la fuente no existe; se toma de las 2 primeras cifras del código de "
+                f"municipio ({m} → {p}) y el CP que da Selenium para la dirección ({cp}) también es de la {p}")
             provincia = deducida
         else:
             # El código de municipio contradice a la provincia (y al nombre del municipio):
             # mandan nombre + provincia, que confirma el CP del mapa; se avisa del código erróneo.
             municipio_id = str(r.get("direccion_municipio_id") or "")
             if re.fullmatch(r"\d{5}", municipio_id) and municipio_id[:2] != provincia:
-                self.incidencia("localidad", f"el código de municipio {municipio_id} es de la provincia "
-                                             f"{municipio_id[:2]}, pero el municipio ({localidad}) y la provincia "
-                                             f"son {provincia}; se usan el municipio y la provincia (lo confirma el CP del mapa)")
+                otra = municipio_id[:2]
+                nota = lambda cp, p=provincia, m=municipio_id, otra=otra: self.incidencia(
+                    "localidad", f"el código de municipio {m} indica la provincia {otra} "
+                    f"({self.almacen.provincias.get(otra, 'desconocida')}), pero el nombre del municipio "
+                    f"({localidad}) y la provincia de la fuente son de la {p}, y el CP que da Selenium ({cp}) "
+                    f"también es de la {p}: se ignora el código de municipio")
 
         direccion, direccion_selenium = montar_direccion(r)
         tipo_en_nombre, _ = separar_tipo(N.limpiar(r["direccion_nombre_via"]) or "")
@@ -154,6 +160,9 @@ class ExtractorCAN(Extractor):
             self.reparado("direccion", f"{r['direccion_tipo_via']} {r['direccion_nombre_via']}",
                           direccion, "tipo de vía repetido")
         cp, latitud, longitud = self.geolocalizar(direccion_selenium, localidad, provincia)
+        self.completado("Selenium", "codigo_postal", "coordenadas")     # la fuente no los trae
+        if nota:
+            nota(cp)
 
         return {
             "nombre": nombre,
@@ -191,9 +200,9 @@ class ExtractorCAN(Extractor):
             consulta = f"{direccion}, {localidad}, {nombre_provincia}, España"
         resultado = self.geocoder.directo(consulta)
         if not resultado or not resultado["cp"]:
-            raise Rechazo("no se pudo obtener el código postal de la dirección")
+            raise Rechazo("Selenium no encuentra la dirección: sin CP ni coordenadas no se puede cargar")
         if resultado["cp"][:2] != provincia:
-            raise Rechazo(f"el código postal obtenido ({resultado['cp']}) no es de la provincia {provincia}")
+            raise Rechazo(f"el CP que da Selenium ({resultado['cp']}) no es de la provincia {provincia}")
         return resultado["cp"], resultado["lat"], resultado["lon"]
 
     def telefono(self, valor):

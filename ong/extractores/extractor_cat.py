@@ -116,7 +116,9 @@ class ExtractorCAT(Extractor):
 
         # ------------------------------------------- localidad y dirección
         localidad = separar_municipio(r["municipi"])
-        self.reparado("localidad", r["municipi"], localidad, "espacios recuperados")
+        self.reparado("localidad", r["municipi"], localidad,
+                      "artículo pasado delante y espacios recuperados" if "(" in r["municipi"]
+                      else "espacios recuperados")
         direccion_fuente = N.separar_toponimo(r["adre_a"])
         direccion = separar_numeros(direccion_fuente)       # lo que se guarda ("Martí 19")
         if not localidad or not direccion:
@@ -149,8 +151,8 @@ class ExtractorCAT(Extractor):
             geo = self.geocoder.directo(f"{calle}, {localidad}, España")
             if not en_su_municipio(geo):
                 donde = (geo or primera or {}).get("direccion")
-                raise Rechazo(f"la dirección no aparece en {localidad}"
-                              + (f" (el mapa la sitúa en «{donde}»)" if donde else "")
+                raise Rechazo(f"Selenium no encuentra la dirección en {localidad}"
+                              + (f" (la sitúa en «{donde}»)" if donde else "")
                               + "; sin coordenadas no se puede cargar")
 
         if cp_fuente and cp_fuente[:2] == geo["cp"][:2]:
@@ -158,9 +160,11 @@ class ExtractorCAT(Extractor):
         else:
             codigo_postal = geo["cp"]
             self.reparado("codigo_postal", r["codi_postal"], codigo_postal,
-                          f"el CP {cp_fuente} es de otra provincia; se usa el del mapa" if cp_fuente
-                          else "CP no válido; se usa el del mapa")
+                          f"el CP {cp_fuente} es de otra provincia; se usa el que da Selenium para la dirección"
+                          if cp_fuente else
+                          "CP no válido; se busca la dirección sin CP y se usa el que da Selenium")
         lat, lon = geo["lat"], geo["lon"]
+        self.completado("Selenium", "coordenadas")       # la fuente no trae coordenadas
 
         # -------------------------------------------------------------- web
         url = None
@@ -181,7 +185,8 @@ class ExtractorCAT(Extractor):
             email = N.email(quitar_carrer(trozo))
             if email:
                 emails.append(email)
-                self.reparado("email", trozo, email, "email normalizado")
+                self.reparado("email", trozo, email, "faltaba el punto del dominio"
+                              if email.count(".") > trozo.count(".") else "email normalizado")
             else:
                 self.incidencia("contacto", f"email no válido: {trozo!r}")
 
@@ -201,9 +206,11 @@ class ExtractorCAT(Extractor):
 
         descripcion = N.separar_camel(r["naturalesa"])           # "AssociacióEstatal" -> "Associació Estatal"
 
+        ambito = self.clasificar_ambito(nombre, descripcion)
+        self.completado("IA Gemini", "ambito")             # la fuente no trae el tipo
         return {
             "nombre": nombre,
-            "ambito": self.clasificar_ambito(nombre, descripcion),
+            "ambito": ambito,
             "direccion": direccion,
             "codigo_postal": codigo_postal,
             "latitud": lat,

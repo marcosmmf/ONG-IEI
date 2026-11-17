@@ -45,6 +45,7 @@ class Geocoder:
         self.visible = visible        # True  -> se ve el navegador trabajando
         self.driver = None
         self.consultas_web = 0
+        self.sin_consultar = 0        # búsquedas que no estaban en caché y no se hicieron (--solo-cache)
         try:
             self.cache = json.loads(CACHE.read_text(encoding="utf-8"))
         except (FileNotFoundError, json.JSONDecodeError):
@@ -151,6 +152,7 @@ class Geocoder:
         if resultado is not None:
             return resultado
         if not self.usar_web:
+            self.sin_consultar += 1
             return None
 
         # Los null antiguos se consideran búsquedas pendientes, no respuestas definitivas.

@@ -1,11 +1,11 @@
 # Estado de la demo (`--muestra`), 16-11-2026
 
-Comando de la demo: `python cargar.py todas --borrar --muestra` (añadir `--geo` si falta algo en caché).
+Comando de la demo: `python cargar.py todas --borrar --muestra` (lo que falte en caché se consulta con Selenium).
 Con las cachés del repo da lo mismo con o sin Selenium.
 
 | Fuente | Leídos | Cargados | Duplicados | Rechazados | Reparados | Avisos |
 |---|---|---|---|---|---|---|
-| CV  | 12 | 10 | 2 | 0 | 10 | 4 |
+| CV  | 12 | 10 | 2 | 0 | 4  | 4 |
 | CAT | 12 | 8  | 2 | 2 | 8  | 1 |
 | CAN | 12 | 8  | 2 | 2 | 7  | 1 |
 
@@ -29,4 +29,4 @@ Ninguna entidad cargada sin CP ni sin coordenadas.
 
 ## Pendiente
 - Informe legible por registro en `cargar.py` (hoy el detalle está en `salida/*_informe.json`).
-- Carga completa de las 3 fuentes con `--geo` para llenar las cachés (varias horas).
+- Carga completa de las 3 fuentes (`python cargar.py todas`) para llenar las cachés (varias horas).
