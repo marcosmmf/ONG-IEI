@@ -1,0 +1,167 @@
+{
+ "D|Plaça Lluís Companys 12, 17003 Girona, España": {
+  "lat": "41.9710787",
+  "lon": "2.8223195",
+  "direccion": "Plaça de Lluís Companys, 17003 Gerona, España"
+ },
+ "D|Carrer Pirineus 52, 08922 Santa Coloma de Gramenet, España": {
+  "lat": "41.4447539",
+  "lon": "2.214679",
+  "direccion": "Carrer dels Pirineus, 08923 Santa Coloma de Gramenet, España"
+ },
+ "D|Carrer Rectoria 6, 17472 L'Armentera, España": {
+  "lat": "42.1716541",
+  "lon": "3.0753323",
+  "direccion": "Carrer de la Rectoria, 17472 l'Armentera, España"
+ },
+ "D|Carrer Josep Aguilera i Martí 19, 17003 Girona, España": {
+  "lat": "41.9831",
+  "lon": "2.8249",
+  "direccion": "17003, España"
+ },
+ "D|Carrer Josep Aguilera i Martí 19, Girona, España": {
+  "lat": "41.98311",
+  "lon": "2.82493",
+  "direccion": "Girona, Cataluña, España"
+ },
+ "D|Carrer de Josep Aguilera i Martí 19, 17003 Girona, España": {
+  "lat": "41.9651583",
+  "lon": "2.8200956",
+  "direccion": "Carrer de Josep Aguilera i Martí, 19, 17003 Gerona, España"
+ },
+ "D|Costa i Cuxart 10, 08031 Barcelona, España": {
+  "lat": "41.4277958",
+  "lon": "2.1746246",
+  "direccion": "Carrer de Costa i Cuxart, 10, 08016 Barcelona, España"
+ },
+ "D|Carrer Centre 10, 08901 L'Hospitalet de Llobregat, España": {
+  "lat": "41.3612854",
+  "lon": "2.0993577",
+  "direccion": "Carrer del Centre, 08801 l'Hospitalet de Llobregat, España"
+ },
+ "D|Travessera de Gràcia 84, 08006 Barcelona, España": {
+  "lat": "41.3976945",
+  "lon": "2.1522575",
+  "direccion": "Super 365, Travessera de Gràcia, 84, 08006 Barcelona, España"
+ },
+ "D|Av Rasos de Peguera 67, Barcelona, España": {
+  "lat": "41.4597009",
+  "lon": "2.175791",
+  "direccion": "Avinguda Rasos de Peguera, 08033 Barcelona, España"
+ },
+ "D|Carrer Llibertat 47, 17012 Barcelona, España": {
+  "lat": "41.5713276",
+  "lon": "2.0188911",
+  "direccion": "Carrer de la Llibertat, 47, 08226 Terrassa, España"
+ },
+ "D|Carrer Llibertat 47, Barcelona, España": {
+  "lat": "41.5713276",
+  "lon": "2.0188911",
+  "direccion": "Carrer de la Llibertat, 47, 08226 Terrassa, España"
+ },
+ "D|Carrer de Llibertat 47, 17012 Barcelona, España": {
+  "lat": "41.5713276",
+  "lon": "2.0188911",
+  "direccion": "Carrer de la Llibertat, 47, 08226 Terrassa, España"
+ },
+ "D|Calle Real 132, Tacoronte, Santa Cruz de Tenerife, España": {
+  "lat": "28.4615547",
+  "lon": "-16.4133777",
+  "direccion": "Calle Real Orotava, El Pastel, 38359 El Sauzal, España"
+ },
+ "D|Calle Hero 19, Santa Cruz de Tenerife, España": {
+  "lat": "28.4690201",
+  "lon": "-16.2725457",
+  "direccion": "Calle Hero, 38008 Santa Cruz de Tenerife, España"
+ },
+ "D|Calle El Drago 6, La Laguna, Santa Cruz de Tenerife, España": {
+  "lat": "28.478262",
+  "lon": "-16.3089381",
+  "direccion": "Calle el Drago, 38207 La Cuesta, España"
+ },
+ "D|Calle Behahore 4, Breña Alta, Santa Cruz de Tenerife, España": {
+  "lat": "28.65",
+  "lon": "-17.78333",
+  "direccion": "Breña Alta, Canarias, España"
+ },
+ "D|Calle Almorejo 2, Arona, Santa Cruz de Tenerife, España": {
+  "lat": "28.0499481",
+  "lon": "-16.6769081",
+  "direccion": "Calle Almorejo, 38627 Arona, España"
+ },
+ "D|Calle Cristobal 114, La Matanza de Acentejo, Santa Cruz de Tenerife, España": {
+  "lat": "28.4399765",
+  "lon": "-16.4484266",
+  "direccion": "Calle San Cristóbal, El Reventón, 38370 La Matanza de Acentejo, España"
+ },
+ "D|Calle Juan Rejon 141, Las Palmas de Gran Canaria, Las Palmas, España": {
+  "lat": "28.150739",
+  "lon": "-15.4186034",
+  "direccion": "Edificio Puerto Europa, Calle Juan Rejón, 141, 35008 Las Palmas de Gran Canaria, España"
+ },
+ "D|Calle Maya 20, La Laguna, Santa Cruz de Tenerife, España": {
+  "lat": "28.4897045",
+  "lon": "-16.3223836",
+  "direccion": "Calle Maya, 38202 La Cuesta, España"
+ },
+ "D|Calle Alcalde Garcia Ramos 6, Santa Cruz de Tenerife, España": {
+  "lat": "28.4585425",
+  "lon": "-16.2689508",
+  "direccion": "Calle Alcalde García Ramos, 38007 Santa Cruz de Tenerife, España"
+ },
+ "I|39.462275,-0.389809": {
+  "lat": "39.462275",
+  "lon": "-0.389809",
+  "direccion": "Calle Cuenca, 89, 46007 Valencia, España"
+ },
+ "I|39.132806,-0.786718": {
+  "lat": "39.132806",
+  "lon": "-0.786718",
+  "direccion": "Calle San Antonio, 20, 46825 Bicorp, España"
+ },
+ "I|39.987326,-0.060437": {
+  "lat": "39.987326",
+  "lon": "-0.060437",
+  "direccion": "Avenida Alcora, 132, 12006 Castelló de La Plana, España"
+ },
+ "I|39.059046,-1.058960": {
+  "lat": "39.059046",
+  "lon": "-1.05896",
+  "direccion": "Calle Santo Domingo, 26, 46620 Ayora, España"
+ },
+ "I|39.394438,-0.591864": {
+  "lat": "39.394438",
+  "lon": "-0.591864",
+  "direccion": "Diseminado Tesoro, 4, 46389 Urbanización Mollón Blanc, España"
+ },
+ "I|38.523790,-0.170292": {
+  "lat": "38.52379",
+  "lon": "-0.170292",
+  "direccion": "Calle Tramuntana, 2, 03570 Urbanització Cales I Talaies, España"
+ },
+ "I|38.825748,0.096995": {
+  "lat": "38.825748",
+  "lon": "0.096995",
+  "direccion": "Calle Marquesa Valero de Palma, 8, 03700 La Pedrera, España"
+ },
+ "D|Av. Antonio Ramos Carratalá, 17, Alacant/Alicante, Alicante/Alacant, España": {
+  "lat": "38.3701939",
+  "lon": "-0.4767133",
+  "direccion": "Avenida Antonio Ramos Carratalá, 03015 Alicante, España"
+ },
+ "D|Carretera Plá de Quart, Km 3, Aldaia, Valencia/València, España": {
+  "lat": "39.46569",
+  "lon": "-0.46005",
+  "direccion": "Aldaya, Valencia, España"
+ },
+ "D|Carretera Plá de Quart, Aldaia, Valencia/València, España": {
+  "lat": "39.4513693",
+  "lon": "-0.5143549",
+  "direccion": "Carretera del Pla de Quart, 46909 Aldaia, España"
+ },
+ "I|39.277776,-0.277514": {
+  "lat": "39.277776",
+  "lon": "-0.277514",
+  "direccion": "Calle Dunes, 6, 46420 El Perelló, España"
+ }
+}
