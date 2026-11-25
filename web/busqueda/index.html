@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Buscador de ONGD</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
+  <link rel="stylesheet" href="../estilo.css">
+  <link rel="stylesheet" href="busqueda.css">
+</head>
+<body>
+  <header class="cabecera">
+    <a class="marca" href="./">Buscador de ONGD <small>Integración e Interoperabilidad</small></a>
+    <nav class="navegacion">
+      <a href="../busqueda/" aria-current="page">Búsqueda</a>
+      <a href="../carga/">Carga</a>
+    </nav>
+  </header>
+
+  <!-- Mientras se carga el almacén al arrancar -->
+  <section id="cargando" class="pantalla-carga" hidden>
+    <div class="panel">
+      <h1>Preparando el almacén de datos</h1>
+      <p class="tenue">Se están cargando las tres fuentes. Lo que ya está en la caché va rápido;
+        las direcciones nuevas se geolocalizan con Selenium y tardan más.</p>
+      <div id="progreso" class="progreso"></div>
+      <p id="error-carga" class="aviso" hidden></p>
+    </div>
+  </section>
+
+  <main class="buscador">
+    <!-- Formulario de búsqueda: usa GET /entidades de la API de búsqueda -->
+    <aside class="lateral">
+      <form id="formulario" autocomplete="off">
+        <h1>Buscar entidades</h1>
+        <div class="campo">
+          <label for="localidad">Localidad</label>
+          <input type="text" id="localidad" name="localidad" placeholder="p. ej. València">
+        </div>
+        <div class="fila">
+          <div class="campo">
+            <label for="cp">Cód. postal</label>
+            <input type="text" id="cp" name="cp" inputmode="numeric" maxlength="5" placeholder="46008">
+          </div>
+          <div class="campo">
+            <label for="provincia">Provincia</label>
+            <input type="text" id="provincia" name="provincia" list="provincias" placeholder="Barcelona">
+            <datalist id="provincias"></datalist>
+          </div>
+        </div>
+        <div class="campo">
+          <label for="tipo">Tipo</label>
+          <select id="tipo" name="tipo"><option value="">Todos los tipos</option></select>
+        </div>
+        <div class="botones">
+          <button type="reset">Cancelar</button>
+          <button type="submit" class="primario">Buscar</button>
+        </div>
+      </form>
+
+      <section class="resultados">
+        <h2>Resultados de la búsqueda <span id="total" class="tenue"></span></h2>
+        <div id="resultados"><p class="tenue">Rellena algún campo y pulsa Buscar.</p></div>
+      </section>
+    </aside>
+
+    <!-- Mapa: independiente del formulario. Pide las entidades de la zona visible (GET /entidades/mapa) -->
+    <section class="mapa-contenedor">
+      <div id="mapa"></div>
+      <div class="leyenda">
+        <span><span class="punto CV"></span>Comunitat Valenciana</span>
+        <span><span class="punto CAT"></span>Catalunya</span>
+        <span><span class="punto CAN"></span>Canarias</span>
+        <span id="en-zona" class="tenue"></span>
+      </div>
+    </section>
+  </main>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+  <script src="../config.js"></script>  <!-- clave de CARTO (opcional, no está en Git) -->
+  <script src="../comun.js"></script>
+  <script src="busqueda.js"></script>
+</body>
+</html>

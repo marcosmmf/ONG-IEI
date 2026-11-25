@@ -5,3 +5,4 @@ __pycache__/
 almacen.db
 salida/
 .DS_Store
+web/config.js

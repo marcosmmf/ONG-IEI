@@ -1,28 +1,15 @@
-"""Wrapper + extractor de Canarias (mapping: docs/mappings/mappings-CAN.docx).
+"""Extractor de Canarias (mapping: docs/mappings/mappings-CAN.docx).
 
-  1. wrapper():       abre el fichero (ya es JSON, aunque se llame "csv") y limpia espacios.
-                      En la 2a entrega se separará y se expondrá como API REST.
-  2. ExtractorCAN:    aplica el mapping al esquema global, repara / rechaza y carga el almacén.
+Recibe el JSON del wrapper CAN (servicios/wrapper_can.py, API en el puerto 8003), aplica el mapping
+al esquema global, repara / rechaza y carga el almacén.
 
 La fuente no tiene CP ni coordenadas: se obtienen con Selenium a partir de la
 dirección completa. Decisiones explicadas en docs/revision-mappings.md (Canarias).
 """
-import json
 import re
-import sys
-from pathlib import Path
 
 from ong.comun import normalizar as N
 from ong.extractores.base import Extractor, Rechazo
-
-FICHERO = Path(__file__).resolve().parents[2] / "datos" / "can" / "datos-abiertos-csv-segundo-trimestre26.json"
-
-
-def wrapper(ruta=FICHERO):
-    """JSON -> lista de dicts con los mismos campos que la fuente."""
-    with open(ruta, encoding="utf-8-sig") as f:
-        datos = json.load(f)
-    return [{k: (v.strip() if isinstance(v, str) else v) for k, v in d.items()} for d in datos]
 
 
 # Anexo del mapping: (area_id, subarea_id) -> ámbito. None = cualquier subárea
@@ -238,6 +225,3 @@ class ExtractorCAN(Extractor):
             self.reparado("url", valor, web, "web mal escrita")
         return web
 
-
-if __name__ == "__main__":
-    json.dump(wrapper(*sys.argv[1:2]), sys.stdout, ensure_ascii=False, indent=2)

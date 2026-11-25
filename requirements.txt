@@ -2,3 +2,6 @@ selenium>=4.20
 python-dotenv>=1.0
 certifi
 openpyxl>=3.1
+fastapi>=0.110
+uvicorn>=0.29
+httpx            # solo para los tests de las APIs

@@ -1,0 +1,74 @@
+/* Página de búsqueda: columna estrecha con el formulario y el mapa ocupando el resto. */
+.buscador {
+  display: grid;
+  grid-template-columns: 390px 1fr;
+  height: calc(100vh - var(--cabecera));
+}
+.lateral {
+  overflow-y: auto;
+  padding: 22px 22px 32px;
+  background: var(--superficie);
+  border-right: 1px solid var(--linea);
+}
+.lateral h1 { font-size: 20px; margin-bottom: 18px; }
+.lateral .botones { justify-content: flex-end; }
+
+.resultados { margin-top: 28px; padding-top: 18px; border-top: 1px solid var(--linea); }
+.resultados h2 { font-size: 15px; margin-bottom: 10px; }
+#total { font-weight: 400; }
+
+.entidad { padding: 12px 0; border-bottom: 1px solid var(--linea); }
+.entidad:last-child { border-bottom: 0; }
+.entidad h3, .popup h3 { font-size: 15px; line-height: 1.3; margin-bottom: 6px; }
+.entidad p, .popup p { margin: 6px 0 0; font-size: 14px; }
+.meta { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-size: 13px; }
+.descripcion { color: var(--tenue); font-size: 13px !important; }
+
+/* ------------------------------------------------------------------ mapa */
+.mapa-contenedor { position: relative; }
+#mapa { position: absolute; inset: 0; background: #e9e7e1; }
+.leyenda {
+  position: absolute; left: 12px; bottom: 22px; z-index: 500;
+  display: flex; gap: 14px; flex-wrap: wrap; align-items: center;
+  padding: 8px 12px; font-size: 13px;
+  background: rgba(255, 255, 255, .94);
+  border: 1px solid var(--linea); border-radius: var(--radio);
+}
+.leaflet-popup-content-wrapper { border-radius: var(--radio); }
+.leaflet-popup-content { margin: 14px 16px; min-width: 240px; font: 14px/1.45 inherit; }
+.popup h3 { padding-right: 12px; }
+
+/* Grupos de marcadores (markercluster) con los colores de la página */
+.grupo {
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  background: var(--acento); color: #fff;
+  font-size: 12px; font-weight: 600;
+  border: 3px solid rgba(255, 255, 255, .85);
+  box-shadow: 0 0 0 1px rgba(30, 107, 87, .35);
+}
+
+/* -------------------------------------------- pantalla de carga al arrancar */
+.pantalla-carga {
+  position: fixed; inset: var(--cabecera) 0 0 0; z-index: 2000;
+  display: flex; align-items: center; justify-content: center;
+  padding: 16px;
+  background: var(--fondo);
+}
+.pantalla-carga[hidden] { display: none; }
+.pantalla-carga .panel {
+  width: min(560px, 100%);
+  padding: 28px;
+  background: var(--superficie);
+  border: 1px solid var(--linea); border-radius: 10px;
+}
+.pantalla-carga h1 { font-size: 20px; }
+.pantalla-carga p { margin: 8px 0 22px; font-size: 14px; }
+.pantalla-carga .aviso { margin: 18px 0 0; }
+
+@media (max-width: 860px) {
+  .buscador { grid-template-columns: 1fr; height: auto; }
+  .mapa-contenedor { height: 70vh; order: -1; }
+  .lateral { border-right: 0; }
+  .leyenda { bottom: 12px; right: 12px; }
+}

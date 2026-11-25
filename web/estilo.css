@@ -1,0 +1,98 @@
+/* Estilo común de los formularios: sobrio, un solo color de acento. */
+:root {
+  --fondo: #f4f3ef;
+  --superficie: #ffffff;
+  --tinta: #1c2321;
+  --tenue: #66706b;
+  --linea: #dedbd3;
+  --acento: #1e6b57;
+  --acento-oscuro: #17513f;
+  --acento-suave: #e4efe9;
+  --peligro: #b3261e;
+  --cv: #c2552d;
+  --cat: #2f5f98;
+  --can: #c99a1c;
+  --radio: 6px;
+  --cabecera: 56px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 15px;
+  color: var(--tinta);
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--fondo); line-height: 1.45; }
+a { color: var(--acento); }
+h1, h2, h3 { margin: 0; font-weight: 600; letter-spacing: -0.01em; }
+
+/* ---------------------------------------------------------------- cabecera */
+.cabecera {
+  height: var(--cabecera);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 24px;
+  background: var(--superficie);
+  border-bottom: 1px solid var(--linea);
+}
+.marca { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 16px; color: var(--tinta); text-decoration: none; }
+.marca::before { content: ""; width: 12px; height: 12px; border-radius: 50%; background: var(--acento); box-shadow: 6px 0 0 -1px var(--can); }
+.marca small { font-weight: 400; color: var(--tenue); font-size: 13px; }
+.navegacion { display: flex; gap: 4px; }
+.navegacion a {
+  padding: 6px 12px; border-radius: var(--radio);
+  color: var(--tenue); text-decoration: none; font-size: 14px;
+}
+.navegacion a:hover { color: var(--tinta); background: var(--fondo); }
+.navegacion a[aria-current="page"] { color: var(--acento); background: var(--acento-suave); font-weight: 500; }
+
+/* -------------------------------------------------------------- formularios */
+label { display: block; font-size: 13px; font-weight: 500; color: var(--tenue); margin-bottom: 4px; }
+input[type="text"], select {
+  width: 100%; height: 38px; padding: 0 10px;
+  font: inherit; color: var(--tinta);
+  background: var(--superficie);
+  border: 1px solid var(--linea); border-radius: var(--radio);
+}
+input::placeholder { color: #a9afab; }
+input[type="text"]:focus, select:focus { outline: none; border-color: var(--acento); box-shadow: 0 0 0 3px var(--acento-suave); }
+.campo { margin-bottom: 14px; }
+.fila { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+.botones { display: flex; gap: 8px; flex-wrap: wrap; }
+button {
+  height: 38px; padding: 0 16px;
+  font: inherit; font-weight: 500; cursor: pointer;
+  border-radius: var(--radio); border: 1px solid var(--linea);
+  background: var(--superficie); color: var(--tinta);
+}
+button:hover { background: var(--fondo); }
+button.primario { background: var(--acento); border-color: var(--acento); color: #fff; }
+button.primario:hover { background: var(--acento-oscuro); }
+button.peligro { color: var(--peligro); border-color: #e7c3c0; }
+button.peligro:hover { background: #fbeceb; }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+.empuja { margin-left: auto; }
+
+.aviso { padding: 10px 12px; border-radius: var(--radio); font-size: 14px; background: #fbeceb; color: var(--peligro); }
+.aviso.ok { background: var(--acento-suave); color: var(--acento-oscuro); }
+.tenue { color: var(--tenue); }
+
+/* -------------------------------------------------- etiquetas de tipo/fuente */
+.tipo { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 12px; background: var(--acento-suave); color: var(--acento-oscuro); }
+.punto { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; vertical-align: 0; }
+.punto.CV { background: var(--cv); } .punto.CAT { background: var(--cat); } .punto.CAN { background: var(--can); }
+
+/* ------------------------------------------------------- barras de progreso */
+.progreso { display: grid; gap: 14px; }
+.progreso .fuente { display: grid; grid-template-columns: 170px 1fr 110px; align-items: center; gap: 12px; font-size: 14px; }
+.progreso .barra { height: 8px; border-radius: 999px; background: var(--fondo); border: 1px solid var(--linea); overflow: hidden; }
+.progreso .barra span { display: block; height: 100%; width: 0; background: var(--acento); transition: width .3s ease; }
+.progreso .cuenta { text-align: right; font-variant-numeric: tabular-nums; color: var(--tenue); }
+.progreso .error .barra span { background: var(--peligro); }
+.progreso .mensaje { grid-column: 1 / -1; font-size: 13px; color: var(--tenue); margin-top: -8px; }
+.progreso .error .mensaje { color: var(--peligro); }
+
+@media (max-width: 640px) {
+  .cabecera { padding: 0 16px; }
+  .marca small { display: none; }
+  .progreso .fuente { grid-template-columns: 1fr 90px; }
+  .progreso .barra { grid-column: 1 / -1; grid-row: 2; }
+}

@@ -1,0 +1,463 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "API de carga",
+    "description": "Carga el almacén de datos a partir de las tres fuentes y permite vaciarlo.\n\n* **Objetivo:** llenar el almacén. Para cada fuente pedida: llama a su **wrapper** (que devuelve la fuente\n  en JSON), aplica el **extractor** (mappings, reparaciones y rechazos, coordenadas con Selenium) e inserta\n  las entidades. Devuelve el informe: cargados, reparados, rechazados y duplicados.\n* **Recursos:** `carga` (una carga del almacén, con su estado y su informe) y `almacen` (las entidades guardadas).\n* La carga es **asíncrona** (puede tardar si hay que geolocalizar con Selenium): `POST /carga` la empieza y\n  `GET /carga/estado` devuelve el progreso de cada fuente. Al arrancar la API se hace una carga completa.\n* Fuentes: `cv` (Comunitat Valenciana), `cat` (Catalunya), `can` (Canarias).",
+    "version": "2.0"
+  },
+  "paths": {
+    "/carga": {
+      "post": {
+        "tags": [
+          "carga"
+        ],
+        "summary": "Cargar las fuentes seleccionadas",
+        "description": "Empieza la carga de las fuentes indicadas (sin borrar lo que ya hay: lo repetido sale como duplicado).\nResponde enseguida con 202; el progreso se consulta en `GET /carga/estado` y el informe en `GET /carga/informe`.",
+        "operationId": "cargar_carga_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PeticionCarga"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Estado"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Ya hay una carga en curso"
+          },
+          "422": {
+            "description": "Fuente desconocida o lista vacía"
+          }
+        }
+      }
+    },
+    "/carga/estado": {
+      "get": {
+        "tags": [
+          "carga"
+        ],
+        "summary": "Progreso de la carga",
+        "description": "Estado de la última carga (o de la que está en curso): progreso por fuente y resumen de las terminadas.",
+        "operationId": "estado_carga_estado_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Estado"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/carga/informe": {
+      "get": {
+        "tags": [
+          "carga"
+        ],
+        "summary": "Informe detallado de la última carga",
+        "description": "Informe registro a registro de cada fuente terminada: cargados (con sus datos), reparados\n(antes → después y motivo), rechazados (con motivo) y duplicados.",
+        "operationId": "informe_carga_informe_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {},
+                "example": [
+                  {
+                    "fuente": "CV",
+                    "leidos": 12,
+                    "cargados": 9,
+                    "duplicados": 0,
+                    "reparados": [
+                      {
+                        "id_origen": "24",
+                        "nombre": "Centro X",
+                        "reparaciones": [
+                          {
+                            "campo": "codigo_postal",
+                            "antes": "3001",
+                            "despues": "03001",
+                            "motivo": "faltaba el 0 inicial"
+                          }
+                        ]
+                      }
+                    ],
+                    "rechazados": [
+                      {
+                        "id_origen": "31",
+                        "nombre": "Centro Y",
+                        "motivo": "falta código postal"
+                      }
+                    ],
+                    "registros": [
+                      "… resultado de cada registro en el orden de la fuente …"
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/almacen": {
+      "delete": {
+        "tags": [
+          "almacen"
+        ],
+        "summary": "Borrar el almacén de datos",
+        "description": "Elimina todas las entidades (o solo las de `fuente`). Las tablas fijas (provincias y ámbitos) se conservan.",
+        "operationId": "borrar_almacen_almacen_delete",
+        "parameters": [
+          {
+            "name": "fuente",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "cv",
+                    "cat",
+                    "can"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Fuente"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Borrado"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Hay una carga en curso"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Borrado": {
+        "properties": {
+          "borradas": {
+            "type": "integer",
+            "title": "Borradas",
+            "description": "Entidades eliminadas",
+            "examples": [
+              2563
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "borradas"
+        ],
+        "title": "Borrado"
+      },
+      "Estado": {
+        "properties": {
+          "en_curso": {
+            "type": "boolean",
+            "title": "En Curso",
+            "description": "True mientras la carga no ha terminado"
+          },
+          "inicio": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Inicio",
+            "examples": [
+              "2026-11-25T18:30:00"
+            ]
+          },
+          "fin": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fin"
+          },
+          "fuentes": {
+            "items": {
+              "$ref": "#/components/schemas/EstadoFuente"
+            },
+            "type": "array",
+            "title": "Fuentes"
+          },
+          "resumen": {
+            "items": {
+              "$ref": "#/components/schemas/Resumen"
+            },
+            "type": "array",
+            "title": "Resumen",
+            "description": "Totales de las fuentes ya terminadas"
+          }
+        },
+        "type": "object",
+        "required": [
+          "en_curso",
+          "inicio",
+          "fin",
+          "fuentes",
+          "resumen"
+        ],
+        "title": "Estado"
+      },
+      "EstadoFuente": {
+        "properties": {
+          "fuente": {
+            "type": "string",
+            "enum": [
+              "cv",
+              "cat",
+              "can"
+            ],
+            "title": "Fuente"
+          },
+          "nombre": {
+            "type": "string",
+            "title": "Nombre",
+            "examples": [
+              "Comunitat Valenciana"
+            ]
+          },
+          "estado": {
+            "type": "string",
+            "enum": [
+              "pendiente",
+              "leyendo",
+              "cargando",
+              "terminado",
+              "error"
+            ],
+            "title": "Estado"
+          },
+          "hechos": {
+            "type": "integer",
+            "title": "Hechos",
+            "description": "Registros procesados",
+            "examples": [
+              340
+            ]
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total",
+            "description": "Registros que ha devuelto el wrapper",
+            "examples": [
+              765
+            ]
+          },
+          "mensaje": {
+            "type": "string",
+            "title": "Mensaje",
+            "description": "Qué está haciendo o por qué ha fallado",
+            "examples": [
+              ""
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "fuente",
+          "nombre",
+          "estado",
+          "hechos",
+          "total",
+          "mensaje"
+        ],
+        "title": "EstadoFuente"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "PeticionCarga": {
+        "properties": {
+          "fuentes": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "cv",
+                "cat",
+                "can"
+              ]
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Fuentes",
+            "description": "Fuentes a cargar (sin repetir)",
+            "examples": [
+              [
+                "cv",
+                "cat",
+                "can"
+              ]
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "fuentes"
+        ],
+        "title": "PeticionCarga"
+      },
+      "Resumen": {
+        "properties": {
+          "fuente": {
+            "type": "string",
+            "title": "Fuente",
+            "examples": [
+              "CV"
+            ]
+          },
+          "leidos": {
+            "type": "integer",
+            "title": "Leidos"
+          },
+          "cargados": {
+            "type": "integer",
+            "title": "Cargados"
+          },
+          "reparados": {
+            "type": "integer",
+            "title": "Reparados"
+          },
+          "rechazados": {
+            "type": "integer",
+            "title": "Rechazados"
+          },
+          "duplicados": {
+            "type": "integer",
+            "title": "Duplicados"
+          }
+        },
+        "type": "object",
+        "required": [
+          "fuente",
+          "leidos",
+          "cargados",
+          "reparados",
+          "rechazados",
+          "duplicados"
+        ],
+        "title": "Resumen"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "carga",
+      "description": "Cargar fuentes y consultar el progreso y el informe"
+    },
+    {
+      "name": "almacen",
+      "description": "Vaciar el almacén de datos"
+    }
+  ],
+  "servers": [
+    {
+      "url": "http://localhost:8004"
+    }
+  ]
+}

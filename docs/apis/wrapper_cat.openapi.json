@@ -1,0 +1,66 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Wrapper CAT — Catalunya",
+    "description": "Simula la API de datos abiertos de **Catalunya**.\n\n* **Objetivo:** ofrecer los datos de la fuente en JSON para que el extractor CAT de la API de carga\n  pueda consumirlos.\n* **Recurso:** `entidades` (las entidades tal como vienen en la fuente, formato original **XML**).\n* **Transformación:** solo de formato (XML → JSON). Los campos y valores son los de la fuente; los\n  mappings al esquema global los aplica el extractor, no el wrapper.\n* **Parámetros:** ninguno.",
+    "version": "2.0"
+  },
+  "paths": {
+    "/entidades": {
+      "get": {
+        "tags": [
+          "entidades"
+        ],
+        "summary": "Todas las entidades de Catalunya en JSON",
+        "description": "Lee el fichero de la fuente, lo convierte a JSON y devuelve todas sus entidades.",
+        "operationId": "entidades_entidades_get",
+        "responses": {
+          "200": {
+            "description": "Lista de entidades con los campos originales de la fuente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "type": "array",
+                  "title": "Response Entidades Entidades Get"
+                },
+                "example": [
+                  {
+                    "n_mero_registre": "612",
+                    "nom_de_l_entitat": "AssociacióAmicsdelPoble",
+                    "naturalesa": "Associació",
+                    "cif_entitat": "G85579191",
+                    "adre_a": "CarrerNicaragua106,7è3a",
+                    "codi_postal": "08029",
+                    "municipi": "Barcelona",
+                    "tel_fon": "931662475",
+                    "tel_fon_m_bil": "602300084",
+                    "correu_electr_nic": "ahcama427@gmailcom",
+                    "web": ""
+                  }
+                ]
+              }
+            }
+          },
+          "503": {
+            "description": "No se puede leer el fichero de la fuente"
+          }
+        }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "entidades",
+      "description": "Entidades de Catalunya en JSON"
+    }
+  ],
+  "servers": [
+    {
+      "url": "http://localhost:8002"
+    }
+  ]
+}

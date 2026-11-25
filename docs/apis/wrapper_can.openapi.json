@@ -1,0 +1,73 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Wrapper CAN — Canarias",
+    "description": "Simula la API de datos abiertos de **Canarias**.\n\n* **Objetivo:** ofrecer los datos de la fuente en JSON para que el extractor CAN de la API de carga\n  pueda consumirlos.\n* **Recurso:** `entidades` (las entidades tal como vienen en la fuente, formato original **JSON**).\n* **Transformación:** solo de formato (JSON → JSON). Los campos y valores son los de la fuente; los\n  mappings al esquema global los aplica el extractor, no el wrapper.\n* **Parámetros:** ninguno.",
+    "version": "2.0"
+  },
+  "paths": {
+    "/entidades": {
+      "get": {
+        "tags": [
+          "entidades"
+        ],
+        "summary": "Todas las entidades de Canarias en JSON",
+        "description": "Lee el fichero de la fuente, lo convierte a JSON y devuelve todas sus entidades.",
+        "operationId": "entidades_entidades_get",
+        "responses": {
+          "200": {
+            "description": "Lista de entidades con los campos originales de la fuente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "type": "array",
+                  "title": "Response Entidades Entidades Get"
+                },
+                "example": [
+                  {
+                    "nif": "G38640769",
+                    "denominacion": "Asociacion De Mayores Viñatigos Centenarios",
+                    "numero_registro": "ERE2003CA00013",
+                    "direccion_tipo_via": "Calle",
+                    "direccion_nombre_via": "Real",
+                    "direccion_numero": "132",
+                    "direccion_complemento": "_U",
+                    "direccion_provincia_id": "99",
+                    "direccion_provincia_nombre": "Desconocida",
+                    "direccion_municipio_id": "38430",
+                    "direccion_municipio_nombre": "Tacoronte",
+                    "direccion_isla_nombre": "Tenerife",
+                    "telefono_1": "(34)922584030",
+                    "pagina_web": "_U",
+                    "area_id": "02",
+                    "area_nombre": "Tercera Edad",
+                    "subarea_id": "_U",
+                    "subarea_nombre": "_U"
+                  }
+                ]
+              }
+            }
+          },
+          "503": {
+            "description": "No se puede leer el fichero de la fuente"
+          }
+        }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "entidades",
+      "description": "Entidades de Canarias en JSON"
+    }
+  ],
+  "servers": [
+    {
+      "url": "http://localhost:8003"
+    }
+  ]
+}

@@ -1,25 +1,98 @@
 # Buscador de ONGD — IEI 2026-27 (Equipo 4)
 
-Entrega 1: almacén de datos + wrappers + extractores de las tres fuentes
-(Comunitat Valenciana, Catalunya y Canarias).
+## Entrega 2: APIs, formularios y mapa
 
-## Cómo funciona
+```
+   Formulario de búsqueda + mapa          Formulario de carga            web/   (puerto 8000)
+   localhost:8000/busqueda/               localhost:8000/carga/
+            │  JSON                                │  JSON
+     API de búsqueda (8005) ◄── almacen.db ◄── API de carga (8004)        servicios/
+                                                   │  extractores CV / CAT / CAN (ong/extractores/)
+                                                   │  HTTP, JSON
+               Wrapper CV (8001)       Wrapper CAT (8002)       Wrapper CAN (8003)
+               datos/cv/*.csv          datos/cat/*.xml          datos/can/*.json
+```
+
+### Las 5 APIs
+
+Cada una corre en su puerto. Documentación OpenAPI en `/docs` (Swagger, se puede probar desde ahí) y
+`/redoc`; la especificación exportada está en `docs/apis/*.openapi.json`
+(se regenera con `python -m servicios.exportar_openapi`).
+
+| API | Puerto | Endpoints | Parámetros |
+|---|---|---|---|
+| Wrapper CV  | 8001 | `GET /entidades` → CSV de la fuente en JSON | ninguno |
+| Wrapper CAT | 8002 | `GET /entidades` → XML de la fuente en JSON | ninguno |
+| Wrapper CAN | 8003 | `GET /entidades` → JSON de la fuente | ninguno |
+| Carga       | 8004 | `POST /carga` `{"fuentes": ["cv","cat","can"]}` · `GET /carga/estado` (progreso) · `GET /carga/informe` · `DELETE /almacen` | fuentes |
+| Búsqueda    | 8005 | `GET /entidades?localidad=&cp=&provincia=&tipo=` (formulario) · `GET /entidades/mapa?lat_min=&lat_max=&lon_min=&lon_max=` (mapa) · `GET /entidades/{id}` · `GET /tipos` · `GET /provincias` | filtros / zona |
+
+- Los **wrappers** solo cambian el formato (la conversión a JSON que antes estaba en cada extractor).
+- La **API de carga** pide el JSON a cada wrapper por HTTP, aplica el extractor y llena el almacén. La carga va
+  en segundo plano: los formularios consultan `GET /carga/estado` para la barra de progreso.
+- **Al arrancar se carga todo** (indicación del profe): la API de carga vacía el almacén y carga las tres fuentes.
+  Mientras dura, la página de búsqueda enseña el progreso; al terminar aparecen el formulario y el mapa.
+- **El mapa no depende de la búsqueda**: cada vez que se mueve o se hace zoom pide las entidades de la zona visible
+  (`/entidades/mapa`); al pulsar un marcador se piden sus datos (`/entidades/{id}`). Buscar en el formulario no cambia el mapa.
+- El campo **Tipo** del formulario es el ámbito de la entidad (tabla `ambito`).
+
+### Arrancar
+
+```bash
+source .venv/bin/activate
+pip install -r requirements.txt
+./arrancar.sh --muestra          # demo: muestra de 12 registros por fuente
+./arrancar.sh                    # datos reales
+```
+
+Opciones: `--solo-cache` (sin Selenium), `--visible` (ver Selenium), `--sin-carga` (no cargar al arrancar),
+`--red` (escuchar en todas las interfaces, para entrar a la VM desde otro equipo). Ctrl+C para todo.
+
+Con los datos reales, lo que no esté en `cache/geocache.json` se geolocaliza con Selenium (aprox. 1-2 s por
+dirección): la primera carga completa tarda mucho. Conviene llenar la caché una vez (`python cargar.py todas`)
+antes de la demo; las siguientes cargas salen de la caché.
+
+**Mapa:** usa las teselas de CARTO si hay clave en `web/config.js` (no se sube a Git; plantilla en
+`web/config.example.js`). Sin ese fichero usa OpenStreetMap, que no necesita clave.
+
+### Estructura
+
+```
+servicios/   config.py (puertos), wrapper_cv/cat/can.py, api_carga.py, api_busqueda.py, exportar_openapi.py
+web/         busqueda/ (formulario + mapa Leaflet), carga/ (formulario de carga), estilo.css, comun.js
+ong/         extractores y utilidades de la Entrega 1 (almacén, geocoder, IA, informe)
+docs/apis/   especificación OpenAPI de las 5 APIs
+arrancar.sh  lanza todo
+```
+
+### Demo de la Entrega 2
+
+1. `./arrancar.sh --muestra` y abrir `http://localhost:8000/busqueda/`: se ve la carga inicial y después el mapa con las tres fuentes.
+2. Mover el mapa y hacer zoom: los marcadores cambian según la zona. Pulsar uno: metadatos de la entidad.
+3. Buscar en el formulario (p. ej. provincia `valencia`, tipo `Mayores`): resultados en la lista; el mapa no cambia.
+4. Página de Carga: borrar el almacén, cargar una fuente y ver el progreso y el informe (rechazados, reparados, duplicados).
+5. Enseñar la documentación de cada API en `http://localhost:800X/docs`.
+
+---
+
+## Entrega 1
+
+### Cómo funciona
 
 ```
                     extractor_cv.py            extractor_cat.py           extractor_can.py
-datos/cv/*.csv   ─► wrapper() ─► JSON ─┐
+datos/cv/*.csv   ─► wrapper ─► JSON ─┐
 datos/cat/*.xml  ─► wrapper() ─► JSON ─┼─► ExtractorXX (aplica mappings, repara, rechaza, informe) ─► almacen.db (SQLite)
 datos/can/*.json ─► wrapper() ─► JSON ─┘                          │
                                                                   └── geocoder (Selenium + caché)
 ```
 
-Por indicación del profesor, en la 1ª entrega wrapper y extractor van **en el mismo archivo, uno por fuente**
-(`ong/extractores/extractor_{cv,cat,can}.py`). Cada archivo hace: 1) abrir el fichero, 2) convertir a JSON
-(`wrapper()`), 3) aplicar los mappings (`ExtractorXX`). Para ver solo el JSON del wrapper:
-`python -m ong.extractores.extractor_cv`.
+En la 1ª entrega wrapper y extractor iban en el mismo archivo; en la 2ª la conversión a JSON
+(`convertir()`) se ha llevado a `servicios/wrapper_{cv,cat,can}.py`, que además la sirven como API.
+`cargar.py` sigue funcionando por consola llamando a esas funciones directamente.
 
-- **`wrapper()`**: solo convierte el formato de la fuente (CSV/XML/JSON) a una lista JSON con los campos
-  *originales*. En la 2ª entrega se separará y cada wrapper será una API REST.
+- **Wrapper** (`servicios/wrapper_*.py`): solo convierte el formato de la fuente (CSV/XML/JSON) a una lista
+  JSON con los campos *originales*.
 - **`ExtractorXX`**: aplica el mapping semántico de su fuente (documentos en `docs/mappings/`) y devuelve
   una entidad del esquema global. La parte común (validar, insertar, informe de cargados / reparados /
   rechazados / duplicados) está en `ong/extractores/base.py`.

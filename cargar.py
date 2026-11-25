@@ -32,23 +32,25 @@ from ong.comun import informe as I
 from ong.comun.almacen import Almacen
 from ong.comun.ambito_ia import CACHE_POR_DEFECTO as CACHE_IA
 from ong.comun.geocoder import CACHE as CACHE_GEO, Geocoder
-from ong.extractores import extractor_can, extractor_cat, extractor_cv
+from ong.extractores.extractor_can import ExtractorCAN
+from ong.extractores.extractor_cat import ExtractorCAT
+from ong.extractores.extractor_cv import ExtractorCV
+from servicios import wrapper_can, wrapper_cat, wrapper_cv
+from servicios.config import fichero
 
+# Versión de consola (sin APIs): llama a la función de conversión de cada wrapper directamente.
+# La aplicación web usa las APIs: ./arrancar.sh
 FUENTES = {
-    "cv": (extractor_cv.wrapper, extractor_cv.ExtractorCV),
-    "cat": (extractor_cat.wrapper, extractor_cat.ExtractorCAT),
-    "can": (extractor_can.wrapper, extractor_can.ExtractorCAN),
+    "cv": (wrapper_cv.convertir, ExtractorCV),
+    "cat": (wrapper_cat.convertir, ExtractorCAT),
+    "can": (wrapper_can.convertir, ExtractorCAN),
 }
 SALIDA = Path(__file__).parent / "salida"
 CACHES = (CACHE_GEO, CACHE_IA)
 BACKUP = CACHE_GEO.parent / "backup"
 # Muestra representativa para la demo: mismo formato y nombre que el fichero original de cada
 # fuente, con casos que se cargan, se reparan y se rechazan.
-MUESTRA = {
-    "cv": extractor_cv.FICHERO.parents[1] / "muestra" / "cv" / extractor_cv.FICHERO.name,
-    "cat": extractor_cat.FICHERO.parents[1] / "muestra" / "cat" / extractor_cat.FICHERO.name,
-    "can": extractor_can.FICHERO.parents[1] / "muestra" / "can" / extractor_can.FICHERO.name,
-}
+MUESTRA = {f: fichero(f, muestra=True) for f in FUENTES}
 
 
 def main():
@@ -105,7 +107,7 @@ def main():
     try:
         for nombre in fuentes:
             wrapper, Extractor = FUENTES[nombre]
-            registros = wrapper(MUESTRA[nombre]) if args.muestra else wrapper()   # 1) wrapper: fuente -> JSON
+            registros = wrapper(fichero(nombre, muestra=args.muestra))   # 1) wrapper: fuente -> JSON
             (SALIDA / f"{nombre}_wrapper.json").write_text(
                 json.dumps(registros, ensure_ascii=False, indent=2), encoding="utf-8")
 

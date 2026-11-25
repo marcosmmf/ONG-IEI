@@ -1,0 +1,679 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "API de búsqueda",
+    "description": "Consulta las entidades del almacén de datos.\n\n* **Objetivo:** dar servicio al formulario de búsqueda y al mapa de la aplicación.\n* **Recurso:** `entidades` (entidades de acción social del almacén, con su localidad, provincia y tipo).\n* **Formulario de búsqueda:** `GET /entidades` filtra por localidad, código postal, provincia y tipo.\n* **Mapa:** `GET /entidades/mapa` devuelve las entidades que caen en la zona visible del mapa (se llama cada\n  vez que el usuario mueve el mapa o cambia el zoom) y `GET /entidades/{id}` los metadatos de una entidad\n  (al pulsar su marcador). El mapa no depende de la búsqueda del formulario.\n* **Tablas auxiliares:** `GET /tipos` y `GET /provincias` para rellenar los desplegables.",
+    "version": "2.0"
+  },
+  "paths": {
+    "/entidades": {
+      "get": {
+        "tags": [
+          "formulario"
+        ],
+        "summary": "Buscar entidades por localidad, código postal, provincia y tipo",
+        "description": "Devuelve las entidades que cumplen **todos** los filtros indicados (los vacíos no filtran),\nordenadas por nombre.",
+        "operationId": "buscar_entidades_get",
+        "parameters": [
+          {
+            "name": "localidad",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 100
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Parte del nombre (sin importar tildes ni mayúsculas)",
+              "examples": [
+                "valencia"
+              ],
+              "title": "Localidad"
+            },
+            "description": "Parte del nombre (sin importar tildes ni mayúsculas)"
+          },
+          {
+            "name": "cp",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\d{1,5}$"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Código postal o su principio (p. ej. `46` = provincia de Valencia)",
+              "examples": [
+                "46008"
+              ],
+              "title": "Cp"
+            },
+            "description": "Código postal o su principio (p. ej. `46` = provincia de Valencia)"
+          },
+          {
+            "name": "provincia",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 100
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Parte del nombre o código de 2 dígitos",
+              "examples": [
+                "Barcelona"
+              ],
+              "title": "Provincia"
+            },
+            "description": "Parte del nombre o código de 2 dígitos"
+          },
+          {
+            "name": "tipo",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/Tipo"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Ámbito de la entidad",
+              "title": "Tipo"
+            },
+            "description": "Ámbito de la entidad"
+          },
+          {
+            "name": "limite",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 5000,
+              "minimum": 1,
+              "description": "Máximo de entidades devueltas",
+              "default": 500,
+              "title": "Limite"
+            },
+            "description": "Máximo de entidades devueltas"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultadoBusqueda"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/entidades/mapa": {
+      "get": {
+        "tags": [
+          "mapa"
+        ],
+        "summary": "Entidades dentro de la zona visible del mapa",
+        "description": "Marcadores (id, nombre, tipo y coordenadas) de todas las entidades del rectángulo indicado.\nSolo lo justo para pintar el mapa: los metadatos se piden con `GET /entidades/{id}` al pulsar el marcador.",
+        "operationId": "en_zona_entidades_mapa_get",
+        "parameters": [
+          {
+            "name": "lat_min",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "maximum": 90,
+              "minimum": -90,
+              "description": "Latitud del borde sur",
+              "examples": [
+                38.9
+              ],
+              "title": "Lat Min"
+            },
+            "description": "Latitud del borde sur"
+          },
+          {
+            "name": "lat_max",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "maximum": 90,
+              "minimum": -90,
+              "description": "Latitud del borde norte",
+              "examples": [
+                39.8
+              ],
+              "title": "Lat Max"
+            },
+            "description": "Latitud del borde norte"
+          },
+          {
+            "name": "lon_min",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "maximum": 180,
+              "minimum": -180,
+              "description": "Longitud del borde oeste",
+              "examples": [
+                -1.0
+              ],
+              "title": "Lon Min"
+            },
+            "description": "Longitud del borde oeste"
+          },
+          {
+            "name": "lon_max",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "maximum": 180,
+              "minimum": -180,
+              "description": "Longitud del borde este",
+              "examples": [
+                0.2
+              ],
+              "title": "Lon Max"
+            },
+            "description": "Longitud del borde este"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Marcador"
+                  },
+                  "title": "Response En Zona Entidades Mapa Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/entidades/{id}": {
+      "get": {
+        "tags": [
+          "mapa"
+        ],
+        "summary": "Metadatos de una entidad",
+        "description": "Todos los datos de la entidad (lo que se enseña al pulsar su marcador en el mapa).",
+        "operationId": "detalle_entidades__id__get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Entidad"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No existe ninguna entidad con ese id"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tipos": {
+      "get": {
+        "tags": [
+          "auxiliares"
+        ],
+        "summary": "Tipos (ámbitos) posibles",
+        "description": "Los valores que acepta el parámetro `tipo` de `GET /entidades`.",
+        "operationId": "tipos_tipos_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array",
+                  "title": "Response Tipos Tipos Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/provincias": {
+      "get": {
+        "tags": [
+          "auxiliares"
+        ],
+        "summary": "Provincias",
+        "description": "Las 52 provincias con el número de entidades que tiene cada una en el almacén.",
+        "operationId": "provincias_provincias_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Provincia"
+                  },
+                  "type": "array",
+                  "title": "Response Provincias Provincias Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Entidad": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id",
+            "examples": [
+              17
+            ]
+          },
+          "nombre": {
+            "type": "string",
+            "title": "Nombre",
+            "examples": [
+              "Accem - V.T. colect. desfavorecidos Cuenca"
+            ]
+          },
+          "tipo": {
+            "type": "string",
+            "title": "Tipo",
+            "description": "Ámbito de la entidad",
+            "examples": [
+              "INCLUSION_SOCIAL"
+            ]
+          },
+          "direccion": {
+            "type": "string",
+            "title": "Direccion",
+            "examples": [
+              "Calle Cuenca, 89"
+            ]
+          },
+          "codigo_postal": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Codigo Postal",
+            "examples": [
+              "46008"
+            ]
+          },
+          "localidad": {
+            "type": "string",
+            "title": "Localidad",
+            "examples": [
+              "València"
+            ]
+          },
+          "provincia": {
+            "type": "string",
+            "title": "Provincia",
+            "examples": [
+              "Valencia/València"
+            ]
+          },
+          "latitud": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latitud",
+            "examples": [
+              39.4669
+            ]
+          },
+          "longitud": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Longitud",
+            "examples": [
+              -0.3893
+            ]
+          },
+          "descripcion": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Descripcion"
+          },
+          "contacto": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contacto",
+            "examples": [
+              "963496977 · agomezc@accem.es"
+            ]
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          },
+          "fuente": {
+            "type": "string",
+            "title": "Fuente",
+            "description": "CV, CAT o CAN",
+            "examples": [
+              "CV"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "nombre",
+          "tipo",
+          "direccion",
+          "codigo_postal",
+          "localidad",
+          "provincia",
+          "latitud",
+          "longitud",
+          "descripcion",
+          "contacto",
+          "url",
+          "fuente"
+        ],
+        "title": "Entidad"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "Marcador": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "nombre": {
+            "type": "string",
+            "title": "Nombre"
+          },
+          "tipo": {
+            "type": "string",
+            "title": "Tipo"
+          },
+          "latitud": {
+            "type": "number",
+            "title": "Latitud"
+          },
+          "longitud": {
+            "type": "number",
+            "title": "Longitud"
+          },
+          "fuente": {
+            "type": "string",
+            "title": "Fuente"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "nombre",
+          "tipo",
+          "latitud",
+          "longitud",
+          "fuente"
+        ],
+        "title": "Marcador"
+      },
+      "Provincia": {
+        "properties": {
+          "codigo": {
+            "type": "string",
+            "title": "Codigo",
+            "examples": [
+              "46"
+            ]
+          },
+          "nombre": {
+            "type": "string",
+            "title": "Nombre",
+            "examples": [
+              "Valencia/València"
+            ]
+          },
+          "entidades": {
+            "type": "integer",
+            "title": "Entidades",
+            "description": "Entidades de la provincia en el almacén",
+            "examples": [
+              812
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "codigo",
+          "nombre",
+          "entidades"
+        ],
+        "title": "Provincia"
+      },
+      "ResultadoBusqueda": {
+        "properties": {
+          "total": {
+            "type": "integer",
+            "title": "Total",
+            "description": "Entidades que cumplen los filtros (aunque se devuelvan menos)"
+          },
+          "entidades": {
+            "items": {
+              "$ref": "#/components/schemas/Entidad"
+            },
+            "type": "array",
+            "title": "Entidades"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total",
+          "entidades"
+        ],
+        "title": "ResultadoBusqueda"
+      },
+      "Tipo": {
+        "type": "string",
+        "enum": [
+          "MAYORES",
+          "DISCAPACIDAD",
+          "SALUD_MENTAL",
+          "INFANCIA_Y_JUVENTUD",
+          "MUJER",
+          "MIGRACION",
+          "INCLUSION_SOCIAL",
+          "EDUCACION_Y_FORMACION",
+          "EMPLEO_E_INSERCION_LABORAL",
+          "SALUD_Y_ATENCION_SOCIOSANITARIA",
+          "VOLUNTARIADO_Y_PARTICIPACION_COMUNITARIA",
+          "CULTURA_Y_DESARROLLO_COMUNITARIO"
+        ],
+        "title": "Tipo"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "formulario",
+      "description": "Búsqueda por los campos del formulario"
+    },
+    {
+      "name": "mapa",
+      "description": "Entidades por zona del mapa y detalle de una entidad"
+    },
+    {
+      "name": "auxiliares",
+      "description": "Valores posibles de los campos"
+    }
+  ],
+  "servers": [
+    {
+      "url": "http://localhost:8005"
+    }
+  ]
+}

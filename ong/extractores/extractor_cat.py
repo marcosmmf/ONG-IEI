@@ -1,23 +1,17 @@
-"""Wrapper + extractor de Catalunya (mapping: docs/mappings/mappings-CAT.docx).
+"""Extractor de Catalunya (mapping: docs/mappings/mappings-CAT.docx).
 
-  1. wrapper():       abre el XML y lo convierte a JSON (solo cambia el formato, sin mappings).
-                      En la 2a entrega se separará y se expondrá como API REST.
-  2. ExtractorCAT:    aplica el mapping al esquema global, repara / rechaza y carga el almacén.
+Recibe el JSON del wrapper CAT (servicios/wrapper_cat.py, API en el puerto 8002), aplica el mapping
+al esquema global, repara / rechaza y carga el almacén.
 
 La fuente viene sin espacios ni puntos, y sin coordenadas ni ámbito: los espacios se
 recuperan, las coordenadas se piden al geocoder (Selenium) y el ámbito a la IA.
 """
-import json
-import sys
 import re
-import xml.etree.ElementTree as ET
-from pathlib import Path
 
 from ong.comun import normalizar as N
 from ong.comun.ambito_ia import AmbitoIA, AmbitoIAError
 from ong.extractores.base import Extractor, Rechazo
 
-FICHERO = Path(__file__).resolve().parents[2] / "datos" / "cat" / "Entitats_ONGD_pretty.xml"
 
 # Campos que usa el extractor. Si a un registro le falta alguno, se trata como vacío.
 CAMPOS = ("nom_de_l_entitat", "naturalesa", "adre_a", "codi_postal", "municipi",
@@ -31,12 +25,6 @@ NO_PARTIR = ("Jordi", "Mundi", "Mali", "Sri", "Beni", "Servei", "Esplai", "Yakal
 # Piso, puerta, local... que van pegados al número de la calle ("2962n1a" = 296, 2n 1a)
 PISO = (r"(?:1er|1r|2n|2on|3er|3r|4t|4rt|5è|6è|\d[aªº]|bis|baixos|bxs|baix|local|ppal|pral|principal"
         r"|entl|entresol|àtic|atic|soterrani|planta|oficina|despatx|esc|es carrer)")
-
-
-def wrapper(ruta=FICHERO):
-    """XML -> lista de dicts: cada <entitat> es {etiqueta: texto}; las etiquetas vacías (<web/>) quedan como ""."""
-    raiz = ET.parse(ruta).getroot()
-    return [{campo.tag: (campo.text or "").strip() for campo in entitat} for entitat in raiz.iter("entitat")]
 
 
 def separar_nombre(texto):
@@ -238,6 +226,3 @@ class ExtractorCAT(Extractor):
             "cod_provincia": codigo_postal[:2],          # diccionario CP -> provincia = tabla provincia
         }
 
-
-if __name__ == "__main__":
-    json.dump(wrapper(*sys.argv[1:2]), sys.stdout, ensure_ascii=False, indent=2)

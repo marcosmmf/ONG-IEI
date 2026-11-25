@@ -1,0 +1,70 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Wrapper CV — Comunitat Valenciana",
+    "description": "Simula la API de datos abiertos de **Comunitat Valenciana**.\n\n* **Objetivo:** ofrecer los datos de la fuente en JSON para que el extractor CV de la API de carga\n  pueda consumirlos.\n* **Recurso:** `entidades` (las entidades tal como vienen en la fuente, formato original **CSV**).\n* **Transformación:** solo de formato (CSV → JSON). Los campos y valores son los de la fuente; los\n  mappings al esquema global los aplica el extractor, no el wrapper.\n* **Parámetros:** ninguno.",
+    "version": "2.0"
+  },
+  "paths": {
+    "/entidades": {
+      "get": {
+        "tags": [
+          "entidades"
+        ],
+        "summary": "Todas las entidades de Comunitat Valenciana en JSON",
+        "description": "Lee el fichero de la fuente, lo convierte a JSON y devuelve todas sus entidades.",
+        "operationId": "entidades_entidades_get",
+        "responses": {
+          "200": {
+            "description": "Lista de entidades con los campos originales de la fuente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "type": "array",
+                  "title": "Response Entidades Entidades Get"
+                },
+                "example": [
+                  {
+                    "WKT": "POINT (724558 4371330)",
+                    "id": "1491",
+                    "ni_centro": "11119",
+                    "tipo_centro": "VIVIENDAS TUTELADAS",
+                    "nombre": "Accem - V.T. colect. desfavorecidos Cuenca",
+                    "entidad": "ACCEM",
+                    "domici": "C/ Cuenca, nº 89, planta 1ª pta. 2",
+                    "cod_ine_mun": "46250",
+                    "provincia": "València/Valencia",
+                    "municipio": "València",
+                    "sector": "POBLACIÓN EN GENERAL Y COLECTIVOS SOCIALMENTE DESFAVORECIDOS",
+                    "email": "agomezc@accem.es",
+                    "telefono": "963496977",
+                    "x_25830": "724558",
+                    "y_25830": "4371330"
+                  }
+                ]
+              }
+            }
+          },
+          "503": {
+            "description": "No se puede leer el fichero de la fuente"
+          }
+        }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "entidades",
+      "description": "Entidades de Comunitat Valenciana en JSON"
+    }
+  ],
+  "servers": [
+    {
+      "url": "http://localhost:8001"
+    }
+  ]
+}

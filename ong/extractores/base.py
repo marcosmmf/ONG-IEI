@@ -63,11 +63,16 @@ class Extractor:
 
     # ------------------------------------------------------------------ carga
 
-    def cargar(self, registros, limite=None):
+    def cargar(self, registros, limite=None, progreso=None):
+        """Carga los registros del wrapper. progreso(hechos, total), si se da, se llama tras cada
+        registro (lo usa la API de carga para la barra de progreso)."""
         # "registros": el resultado de cada registro en el orden de la fuente (para el informe legible)
         informe = {"fuente": self.FUENTE, "leidos": 0, "cargados": 0, "duplicados": 0,
                    "reparados": [], "rechazados": [], "registros": []}
-        for registro in registros[:limite] if limite else registros:
+        registros = registros[:limite] if limite else registros
+        for registro in registros:
+            if progreso:
+                progreso(informe["leidos"], len(registros))
             informe["leidos"] += 1
             self._reparaciones = []
             self._incidencias = []
@@ -102,6 +107,8 @@ class Extractor:
                 informe["rechazados"].append({**ident, "motivo": motivo})
                 informe["registros"].append({**ident, "resultado": "rechazado", "motivo": motivo})
         self.almacen.commit()
+        if progreso:
+            progreso(informe["leidos"], len(registros))
         return informe
 
     def _sin_consultar(self):

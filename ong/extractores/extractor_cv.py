@@ -1,31 +1,18 @@
-"""Wrapper + extractor de la Comunitat Valenciana (mapping: docs/mappings/mappingsCV.pdf).
+"""Extractor de la Comunitat Valenciana (mapping: docs/mappings/mappingsCV.pdf).
 
-  1. wrapper():       abre el CSV y lo convierte a JSON (solo cambia el formato, sin mappings).
-                      En la 2a entrega se separará y se expondrá como API REST.
-  2. ExtractorCV:     aplica el mapping al esquema global, repara / rechaza y carga el almacén.
+Recibe el JSON del wrapper CV (servicios/wrapper_cv.py, API en el puerto 8001), aplica el mapping
+al esquema global, repara / rechaza y carga el almacén.
 
 Recupera dirección y CP con el geocoder. Rechaza registros sin dirección o CP
 válidos y evita utilizar el punto genérico de València como ubicación real.
 """
-import csv
-import json
 import math
 import re
-import sys
 import unicodedata
-from pathlib import Path
 
 from ong.comun import normalizar as N
 from ong.comun.utm import utm_a_latlon
 from ong.extractores.base import Extractor, Rechazo
-
-FICHERO = Path(__file__).resolve().parents[2] / "datos" / "cv" / "entidades_CV.csv"
-
-
-def wrapper(ruta=FICHERO):
-    """CSV -> lista de dicts, conservando los campos y valores originales."""
-    with open(ruta, encoding="utf-8-sig", newline="") as f:
-        return list(csv.DictReader(f))
 
 
 # Reglas de ámbito del mapping, en orden: primero tipo_centro (más específico), luego sector
@@ -225,7 +212,3 @@ class ExtractorCV(Extractor):
             "cod_provincia": provincia,
         }
 
-
-if __name__ == "__main__":
-    sys.stdout.reconfigure(encoding="utf-8")
-    json.dump(wrapper(*sys.argv[1:2]), sys.stdout, ensure_ascii=False, indent=2)

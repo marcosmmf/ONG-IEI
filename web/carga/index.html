@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Carga del almacén · Buscador de ONGD</title>
+  <link rel="stylesheet" href="../estilo.css">
+  <link rel="stylesheet" href="carga.css">
+</head>
+<body>
+  <header class="cabecera">
+    <a class="marca" href="../busqueda/">Buscador de ONGD <small>Integración e Interoperabilidad</small></a>
+    <nav class="navegacion">
+      <a href="../busqueda/">Búsqueda</a>
+      <a href="../carga/" aria-current="page">Carga</a>
+    </nav>
+  </header>
+
+  <main class="pagina">
+    <h1>Carga del almacén de datos</h1>
+
+    <!-- Formulario de carga: usa la API de carga (POST /carga, DELETE /almacen) -->
+    <form id="formulario" class="tarjeta">
+      <fieldset>
+        <legend>Seleccione fuente</legend>
+        <label class="opcion todas"><input type="checkbox" id="todas"> Seleccionar todas</label>
+        <label class="opcion"><input type="checkbox" name="fuente" value="cat"> Catalunya</label>
+        <label class="opcion"><input type="checkbox" name="fuente" value="cv"> Comunitat Valenciana</label>
+        <label class="opcion"><input type="checkbox" name="fuente" value="can"> Canarias</label>
+      </fieldset>
+      <div class="botones">
+        <button type="reset">Cancelar</button>
+        <button type="submit" class="primario" id="cargar">Cargar</button>
+        <button type="button" class="peligro empuja" id="borrar">Borrar almacén de datos</button>
+      </div>
+      <p id="mensaje" class="aviso" hidden></p>
+    </form>
+
+    <section id="seccion-progreso" class="tarjeta" hidden>
+      <h2>Cargando…</h2>
+      <div id="progreso" class="progreso"></div>
+    </section>
+
+    <section class="resultados">
+      <h2>Resultados de la carga <span id="cuando" class="tenue"></span></h2>
+      <div id="resultados"><p class="tenue">Todavía no se ha hecho ninguna carga.</p></div>
+    </section>
+  </main>
+
+  <script src="../comun.js"></script>
+  <script src="carga.js"></script>
+</body>
+</html>

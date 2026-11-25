@@ -5,7 +5,9 @@ from unittest.mock import Mock
 from ong.comun.almacen import Almacen
 from ong.comun.utm import utm_a_latlon
 from ong.extractores.base import Extractor, Rechazo
-from ong.extractores.extractor_cv import ExtractorCV, wrapper
+from ong.extractores.extractor_cv import ExtractorCV
+from servicios.config import fichero
+from servicios.wrapper_cv import convertir
 
 
 class ExtractorCVTests(unittest.TestCase):
@@ -187,7 +189,7 @@ class ExtractorCVTests(unittest.TestCase):
         self.assertEqual(ambito, "INCLUSION_SOCIAL")
 
     def test_clubs_reales_de_la_fuente_se_clasifican_por_sector(self):
-        registros = [r for r in wrapper() if r["tipo_centro"] == "CLUBS DE CONVIVENCIA"]
+        registros = [r for r in convertir(fichero("cv")) if r["tipo_centro"] == "CLUBS DE CONVIVENCIA"]
         self.assertEqual(len(registros), 3)
         for registro in registros:
             with self.subTest(id_origen=registro["id"]):
