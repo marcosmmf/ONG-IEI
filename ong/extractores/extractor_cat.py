@@ -7,6 +7,7 @@ La fuente viene sin espacios ni puntos, y sin coordenadas ni ámbito: los espaci
 recuperan, las coordenadas se piden al geocoder (Selenium) y el ámbito a la IA.
 """
 import re
+from pathlib import Path
 
 from ong.comun import normalizar as N
 from ong.comun.ambito_ia import AmbitoIA, AmbitoIAError
@@ -75,7 +76,8 @@ class ExtractorCAT(Extractor):
 
     def __init__(self, almacen, geocoder):
         super().__init__(almacen, geocoder)
-        self.ambito_ia = AmbitoIA(almacen)
+        ruta = getattr(geocoder, "ruta", None)        # misma carpeta (demo o completa) que la del geocoder
+        self.ambito_ia = AmbitoIA(almacen, cache_path=Path(ruta).parent / "ambito_cache.json" if ruta else None)
 
     def id_origen(self, r):
         return r.get("n_mero_registre")

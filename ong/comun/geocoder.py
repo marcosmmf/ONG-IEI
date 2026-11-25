@@ -6,7 +6,7 @@ Sigue el esquema del T07 (Selenium WebDriver):
 - directo(direccion)  -> lat, lon, dirección formateada, CP, localidad   (Canarias, Catalunya)
 - inverso(lat, lon)   -> dirección formateada, CP, localidad              (CV: CP y dirección que falta)
 
-Todas las respuestas se guardan en cache/geocache.json: la web solo se consulta la
+Todas las respuestas se guardan en la caché del modo (cache/demo/ o cache/completa/, ver caches.py): la web solo se consulta la
 primera vez; las cargas siguientes (y la demo) salen de la caché.
 """
 import json
@@ -15,6 +15,8 @@ import re
 import time
 from pathlib import Path
 
+from ong.comun import caches
+
 from selenium import webdriver
 from selenium.common.exceptions import NoAlertPresentException, TimeoutException, WebDriverException
 from selenium.webdriver.common.by import By
@@ -22,7 +24,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
 URL = "https://www.coordenadas-gps.com/"
-CACHE = Path(__file__).resolve().parents[2] / "cache" / "geocache.json"
+CACHE = None           # ruta fija de la caché (los tests la cambian); None = la del modo (ong/comun/caches.py)
 ESPERA_MAX = 15         # segundos esperando la respuesta de una consulta
 ESPERA_INICIO = 30      # la primera carga del mapa puede tardar más
 PAUSA = 1.0             # entre consultas, para no saturar la web
@@ -40,14 +42,15 @@ def parsear_direccion(texto):
 
 
 class Geocoder:
-    def __init__(self, usar_web=True, visible=False):
+    def __init__(self, usar_web=True, visible=False, cache=None):
+        self.ruta = Path(cache) if cache else (CACHE or caches.geocache())
         self.usar_web = usar_web      # False -> solo caché (cargas rápidas para probar)
         self.visible = visible        # True  -> se ve el navegador trabajando
         self.driver = None
         self.consultas_web = 0
         self.sin_consultar = 0        # búsquedas que no estaban en caché y no se hicieron (--solo-cache)
         try:
-            self.cache = json.loads(CACHE.read_text(encoding="utf-8"))
+            self.cache = json.loads(self.ruta.read_text(encoding="utf-8"))
         except (FileNotFoundError, json.JSONDecodeError):
             self.cache = {}
 
@@ -194,5 +197,5 @@ class Geocoder:
                 "cp": cp, "localidad": localidad}
 
     def _guardar(self):
-        CACHE.parent.mkdir(exist_ok=True)
-        CACHE.write_text(json.dumps(self.cache, ensure_ascii=False, indent=1), encoding="utf-8")
+        self.ruta.parent.mkdir(parents=True, exist_ok=True)
+        self.ruta.write_text(json.dumps(self.cache, ensure_ascii=False, indent=1), encoding="utf-8")

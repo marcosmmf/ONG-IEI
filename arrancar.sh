@@ -3,11 +3,12 @@
 #
 #   ./arrancar.sh                 datos reales (lo que no esté en la caché se geolocaliza con Selenium: lento)
 #   ./arrancar.sh --muestra       muestra de la demo (datos/muestra/, 12 registros por fuente)
-#   ./arrancar.sh --solo-cache    no abrir Selenium: lo que no esté en cache/geocache.json se rechaza
+#   ./arrancar.sh --solo-cache    no abrir Selenium: lo que no esté en la caché se rechaza
 #   ./arrancar.sh --visible       ver el navegador de Selenium mientras geolocaliza
 #   ./arrancar.sh --sin-carga     no cargar al arrancar (se usa lo que ya hay en el almacén)
 #   ./arrancar.sh --red           escuchar en todas las interfaces (para entrar a la VM desde fuera)
 #
+# Cada modo usa su caché: cache/demo/ (con --muestra) o cache/completa/. Gestionarlas: python cache.py
 # Ctrl+C para todo.
 cd "$(dirname "$0")"
 
@@ -26,9 +27,22 @@ ESCUCHA=${ESCUCHA:-127.0.0.1}
 
 if [ -x .venv/bin/python ]; then PY=.venv/bin/python; else PY=python3; fi
 
+# Si ya hay algo en los puertos (otra ejecución que sigue abierta), avisar en vez de fallar a medias
+ocupados=$("$PY" -c '
+import socket
+for p in range(8000, 8006):
+    s = socket.socket()
+    if s.connect_ex(("127.0.0.1", p)) == 0: print(p, end=" ")
+    s.close()')
+if [ -n "$ocupados" ]; then
+  echo "Los puertos $ocupados ya están en uso: ¿la aplicación sigue arrancada en otro terminal?"
+  echo "Párala (Ctrl+C en ese terminal) o: pkill -f 'uvicorn servicios\.'; pkill -f 'http.server 8000'"
+  exit 1
+fi
+
 pids=()
 parar() { echo; echo "Parando…"; kill "${pids[@]}" 2>/dev/null; wait 2>/dev/null; exit 0; }
-trap parar INT TERM
+trap parar INT TERM HUP   # HUP: al cerrar el terminal (o la tarea del editor) también se para todo
 
 lanzar() {   # nombre módulo puerto
   "$PY" -m uvicorn "servicios.$2:app" --host "$ESCUCHA" --port "$3" --log-level warning &

@@ -7,7 +7,7 @@ Al arrancar vacía el almacén y carga las tres fuentes (variable CARGA_INICIAL=
 La carga va en segundo plano: POST /carga la empieza y GET /carga/estado dice cómo va, que es lo
 que usan los formularios para pintar la barra de progreso.
 
-Variables de entorno: SOLO_CACHE=1 (no abrir Selenium: solo lo que haya en cache/geocache.json),
+Variables de entorno: SOLO_CACHE=1 (no abrir Selenium: solo lo que haya en la caché del modo, ver ong/comun/caches.py),
 SELENIUM_VISIBLE=1 (ver el navegador de Selenium).
 """
 import json
@@ -23,6 +23,7 @@ from typing import Literal
 from fastapi import HTTPException
 from pydantic import BaseModel, Field
 
+from ong.comun import caches
 from ong.comun import informe as I
 from ong.comun.almacen import Almacen
 from ong.comun.geocoder import Geocoder
@@ -72,7 +73,8 @@ def _cargar(fuentes, borrar_antes):
     try:
         almacen = Almacen()
         geocoder = Geocoder(usar_web=os.environ.get("SOLO_CACHE") != "1",
-                            visible=os.environ.get("SELENIUM_VISIBLE") == "1")
+                            visible=os.environ.get("SELENIUM_VISIBLE") == "1",
+                            cache=caches.geocache())      # cache/demo/ con DATOS=muestra, si no cache/completa/
         if borrar_antes:
             almacen.borrar()
         for f in fuentes:

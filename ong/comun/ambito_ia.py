@@ -12,9 +12,11 @@ from pathlib import Path
 import certifi
 from dotenv import load_dotenv
 
+from ong.comun import caches
+
 
 RAIZ = Path(__file__).resolve().parents[2]
-CACHE_POR_DEFECTO = RAIZ / "cache" / "ambito_cache.json"
+CACHE_POR_DEFECTO = None      # None = la caché del modo (ong/comun/caches.py)
 # Alias de Google que apunta siempre al último Flash-Lite: si retiran un modelo concreto, no se rompe.
 # Se usa Lite porque el Flash normal da 503 (saturado) y timeouts; Lite responde en <1 s.
 # GEMINI_MODEL en el .env es opcional; si ese modelo deja de existir (404) se vuelve a este alias.
@@ -48,7 +50,7 @@ class AmbitoIA:
         self.ambitos = tuple(sorted(almacen.ambitos))
         if not self.ambitos:
             raise AmbitoIAError("no hay ámbitos definidos en el almacén")
-        self.cache_path = Path(cache_path)
+        self.cache_path = Path(cache_path) if cache_path else caches.ambito()
         self.api_key = api_key or os.getenv("GEMINI_API_KEY")
         self.model = model or os.getenv("GEMINI_MODEL", MODELO_POR_DEFECTO)
         self.timeout = timeout

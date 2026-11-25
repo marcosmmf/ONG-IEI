@@ -6,7 +6,6 @@ escribiendo los comandos a mano (cargar.py y ver_bd.py siguen funcionando como s
 Por defecto: datos de muestra y navegador de Selenium visible (una sola ventana de Chrome por
 carga, y solo si hay que consultar algo que no está en la caché).
 """
-import json
 import os
 import shlex
 import sqlite3
@@ -14,9 +13,10 @@ import subprocess
 import sys
 from pathlib import Path
 
+from ong.comun import caches
+
 RAIZ = Path(__file__).resolve().parent
 BD = RAIZ / "almacen.db"
-CACHE = RAIZ / "cache"
 INFORME = RAIZ / "salida" / "informe.html"
 NOMBRES = {"cv": "Comunitat Valenciana (CV)", "cat": "Catalunya (CAT)", "can": "Canarias (CAN)"}
 
@@ -37,23 +37,22 @@ def entidades():
         return {}
 
 
+def modo():
+    return caches.modo(opciones["muestra"])         # caché demo con la muestra, completa con los datos reales
+
+
 def cache(nombre):
-    f = CACHE / nombre
-    if not f.exists():
-        return "vacía (se consulta en directo)"
-    try:
-        return f"{len(json.loads(f.read_text(encoding='utf-8')))} guardadas"
-    except (OSError, json.JSONDecodeError):
-        return "ilegible"
+    n = caches.contar(caches.carpeta(modo()) / nombre)
+    return "vacía (se consulta en directo)" if n is None else ("ilegible" if n < 0 else f"{n} guardadas")
 
 
 def cabecera():
     n = entidades()
     bd = " · ".join(f"{f.upper()} {n.get(f.upper(), 0)}" for f in NOMBRES)
-    backup = "sí" if (CACHE / "backup" / "geocache.json").exists() else "NO"
+    backup = "sí" if (caches.copia(modo()) / "geocache.json").exists() else "NO"
     print("══════════════ Demo Buscador de ONGD ══════════════")
     print(f" BD:       {bd} entidades")
-    print(f" Caché:    Selenium {cache('geocache.json')} · Gemini {cache('ambito_cache.json')} · copia en backup: {backup}")
+    print(f" Caché {modo()}: Selenium {cache('geocache.json')} · Gemini {cache('ambito_cache.json')} · copia en backup: {backup}")
     print(f" Datos:    {'muestra (12 por fuente)' if opciones['muestra'] else 'REALES (fichero completo)'}"
           f" · navegador Selenium: {'visible' if opciones['visible'] else 'oculto'}"
           f" · Selenium: {'NO, solo caché (--solo-cache)' if opciones['solo_cache'] else 'sí, para lo que no esté en caché'}")
@@ -106,8 +105,8 @@ def abrir_informe():
 def cambiar(clave):
     opciones[clave] = not opciones[clave]
     if clave == "muestra" and not opciones["muestra"]:
-        print("Ojo: la caché solo cubre la muestra. Con los datos reales, Selenium (y Gemini en CAT)\n"
-              "consultarán cientos de registros y tardará horas.")
+        print("Ojo: con los datos reales se usa la caché completa. Lo que no esté en ella lo consultan\n"
+              "Selenium (y Gemini en CAT): la primera vez son miles de registros y tarda horas.")
 
 
 MENU = [
@@ -118,8 +117,8 @@ MENU = [
     ("5", f"Cargar {NOMBRES['can']}", lambda: cargar("can")),
     ("6", "Cargar las tres fuentes", lambda: cargar("todas")),
     ("7", "Reabrir el último informe (HTML)", abrir_informe),
-    ("8", "Vaciar la caché (Selenium y Gemini en directo)", lambda: ejecutar(["python", "cargar.py", "--vaciar-cache"])),
-    ("9", "Restaurar la caché desde backup", lambda: ejecutar(["python", "cargar.py", "--restaurar-cache"])),
+    ("8", "Vaciar la caché (Selenium y Gemini en directo)", lambda: ejecutar(["python", "cache.py", "vaciar", modo()])),
+    ("9", "Restaurar la caché desde backup", lambda: ejecutar(["python", "cache.py", "restaurar", modo()])),
     ("10", "Cambiar datos: muestra ↔ reales", lambda: cambiar("muestra")),
     ("11", "Cambiar navegador de Selenium: visible ↔ oculto", lambda: cambiar("visible")),
     ("12", "Cambiar Selenium: usarlo ↔ solo caché", lambda: cambiar("solo_cache")),

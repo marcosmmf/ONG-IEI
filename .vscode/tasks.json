@@ -1,0 +1,74 @@
+{
+    // Tareas para Antigravity / VS Code: Terminal > Run Task… (o Cmd+Shift+P > "Tasks: Run Task").
+    // Las dos lanzan ./arrancar.sh: las 5 APIs (8001-8005) y la web (8000), y hacen la carga inicial.
+    // Para parar: Ctrl+C en el terminal de la tarea (o el icono de la papelera).
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Arrancar: datos de demo (muestra)",
+            "detail": "12 registros por fuente (datos/muestra/). Carga en segundos.",
+            "type": "shell",
+            "command": "./arrancar.sh --muestra",
+            "options": { "cwd": "${workspaceFolder}" },
+            "isBackground": true,
+            "problemMatcher": {
+                "owner": "arrancar",
+                "pattern": { "regexp": "^__nunca__$" },
+                "background": { "activesBegin": true, "beginsPattern": "^APIs", "endsPattern": "Ctrl\\+C para parar" }
+            },
+            "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
+            "group": { "kind": "build", "isDefault": true }
+        },
+        {
+            "label": "Arrancar: datos completos",
+            "detail": "Las 3 fuentes enteras. Lo que no esté en la caché se geolocaliza con Selenium (la 1ª vez, horas).",
+            "type": "shell",
+            "command": "./arrancar.sh",
+            "options": { "cwd": "${workspaceFolder}" },
+            "isBackground": true,
+            "problemMatcher": {
+                "owner": "arrancar",
+                "pattern": { "regexp": "^__nunca__$" },
+                "background": { "activesBegin": true, "beginsPattern": "^APIs", "endsPattern": "Ctrl\\+C para parar" }
+            },
+            "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
+            "group": "build"
+        },
+        {
+            "label": "Caché: ver, vaciar, restaurar o borrar copia",
+            "detail": "Cachés de Selenium y Gemini, separadas: cache/demo/ (muestra) y cache/completa/. Mejor con la aplicación parada.",
+            "type": "process",
+            "command": "${workspaceFolder}/.venv/bin/python",
+            "windows": { "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe" },
+            "args": ["cache.py", "${input:accionCache}", "${input:modoCache}"],
+            "options": { "cwd": "${workspaceFolder}" },
+            "problemMatcher": [],
+            "presentation": { "reveal": "always", "panel": "shared", "clear": true }
+        }
+    ],
+    "inputs": [
+        {
+            "id": "accionCache",
+            "type": "pickString",
+            "description": "¿Qué quieres hacer con la caché?",
+            "options": [
+                { "label": "Ver estado (cuántas consultas hay guardadas)", "value": "estado" },
+                { "label": "Vaciar (la próxima carga usa Selenium y Gemini en directo)", "value": "vaciar" },
+                { "label": "Restaurar desde la copia de seguridad", "value": "restaurar" },
+                { "label": "Guardar la caché actual como copia de seguridad", "value": "guardar-copia" },
+                { "label": "Borrar la copia de seguridad", "value": "borrar-copia" }
+            ],
+            "default": "estado"
+        },
+        {
+            "id": "modoCache",
+            "type": "pickString",
+            "description": "¿Qué caché? (para «Ver estado» da igual: enseña las dos)",
+            "options": [
+                { "label": "demo (muestra)", "value": "demo" },
+                { "label": "completa (datos totales)", "value": "completa" }
+            ],
+            "default": "demo"
+        }
+    ]
+}

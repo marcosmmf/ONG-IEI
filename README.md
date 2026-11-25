@@ -45,12 +45,36 @@ pip install -r requirements.txt
 ./arrancar.sh                    # datos reales
 ```
 
+Desde Antigravity / VS Code: **Terminal → Run Task…** y elegir **Arrancar: datos de demo (muestra)** o
+**Arrancar: datos completos** (`.vscode/tasks.json`). Para parar, Ctrl+C en el terminal de la tarea o cerrarlo.
+
 Opciones: `--solo-cache` (sin Selenium), `--visible` (ver Selenium), `--sin-carga` (no cargar al arrancar),
 `--red` (escuchar en todas las interfaces, para entrar a la VM desde otro equipo). Ctrl+C para todo.
 
-Con los datos reales, lo que no esté en `cache/geocache.json` se geolocaliza con Selenium (aprox. 1-2 s por
-dirección): la primera carga completa tarda mucho. Conviene llenar la caché una vez (`python cargar.py todas`)
-antes de la demo; las siguientes cargas salen de la caché.
+### Cachés (demo y completa)
+
+Cada modo tiene su caché de Selenium (`geocache.json`) y de Gemini (`ambito_cache.json`), con su propia copia
+de seguridad en `backup/`:
+
+| Caché | Carpeta | La usan |
+|---|---|---|
+| demo | `cache/demo/` | `./arrancar.sh --muestra`, `cargar.py --muestra`, tarea «datos de demo» |
+| completa | `cache/completa/` | `./arrancar.sh`, `cargar.py` sin `--muestra`, tarea «datos completos» |
+
+```bash
+python cache.py                          # estado de las dos y de sus copias
+python cache.py vaciar demo              # borra la caché (si no hay copia, la hace antes)
+python cache.py restaurar demo           # vuelve a poner la copia de backup/
+python cache.py guardar-copia completa   # la caché actual pasa a ser la copia de seguridad
+python cache.py borrar-copia completa    # elimina la copia de seguridad
+```
+
+En Antigravity: tarea **Caché: ver, vaciar, restaurar o borrar copia** (pregunta la acción y la caché).
+Mejor con la aplicación parada.
+
+Con los datos completos, lo que no esté en `cache/completa/` se geolocaliza con Selenium (aprox. 1-2 s por
+dirección): la primera carga tarda horas. Conviene llenarla una vez (`python cargar.py todas`) y después
+`python cache.py guardar-copia completa`; las siguientes cargas salen de la caché.
 
 **Mapa:** usa las teselas de CARTO si hay clave en `web/config.js` (no se sube a Git; plantilla en
 `web/config.example.js`). Sin ese fichero usa OpenStreetMap, que no necesita clave.
@@ -98,7 +122,7 @@ En la 1ª entrega wrapper y extractor iban en el mismo archivo; en la 2ª la con
   rechazados / duplicados) está en `ong/extractores/base.py`.
 - **Geocoder** (`ong/comun/geocoder.py`): scraper con Selenium sobre coordenadas-gps.com, siguiendo
   el esquema del T07 (ir a la página → localizar elemento → `send_keys`/`click` → `WebDriverWait`).
-  Las respuestas se guardan en `cache/geocache.json` (se sube al repo) para no repetir consultas.
+  Las respuestas se guardan en `cache/demo/` o `cache/completa/` (se suben al repo) para no repetir consultas.
 - **Almacén**: `sql/schema.sql` (SQLite, el que usa el código). `sql/schema_postgres.sql` es la misma
   estructura en PostgreSQL.
 
@@ -146,7 +170,7 @@ GEMINI_API_KEY=tu-clave-nueva
 El archivo `.env` está excluido de Git y no debe compartirse. Se incluye
 `.env.example` como plantilla.
 
-Las respuestas se guardan en `cache/ambito_cache.json`. Si una entidad ya está
+Las respuestas se guardan en `ambito_cache.json`, en la carpeta de caché del modo. Si una entidad ya está
 en la caché, no se realiza otra llamada a la API; si Gemini falla o devuelve
 un ámbito que no existe en la tabla `ambito`, la clase informa del error para
 que el extractor pueda rechazar el registro.
@@ -178,20 +202,20 @@ Por defecto usa la muestra y el navegador de Selenium visible (opciones 10-12 pa
 | Cargar una fuente con los datos reales | `python cargar.py cv --abrir` |
 | Ver el navegador de Selenium | añadir `--visible` al comando de carga |
 | No usar Selenium (solo la caché) | añadir `--solo-cache` al comando de carga |
-| Vaciar la caché | `python cargar.py --vaciar-cache` |
-| Restaurar la caché | `python cargar.py --restaurar-cache` |
+| Vaciar la caché | `python cache.py vaciar demo` (o `completa`) |
+| Restaurar la caché | `python cache.py restaurar demo` (o `completa`) |
 | Reabrir el informe | `open salida/informe.html` |
 
 ### Cachés en la demo (Selenium y Gemini en directo)
 
-- `cache/geocache.json` (Selenium) y `cache/ambito_cache.json` (Gemini), consulta a consulta: lo que
-  **ya está** se aprovecha; lo que **falta** se consulta en directo y se guarda (salvo `--solo-cache`).
-- `cache/backup/` guarda una copia que no se toca nunca, por si Selenium o la IA fallan en la demo.
+- Cachés de Selenium y Gemini, consulta a consulta: lo que **ya está** se aprovecha; lo que **falta** se
+  consulta en directo y se guarda (salvo `--solo-cache`). Hay una para la muestra (`cache/demo/`) y otra
+  para los datos completos (`cache/completa/`), cada una con su copia en `backup/` (ver «Cachés» arriba).
 
 ```bash
-python cargar.py --vaciar-cache                       # borra las cachés (la copia queda en cache/backup/)
+python cache.py vaciar demo                                # borra la caché demo (la copia queda en backup/)
 python cargar.py cv --borrar --muestra --visible --abrir   # carga en directo viendo el navegador de Selenium
-python cargar.py --restaurar-cache                    # si algo falla: vuelve a poner la copia y se repite la carga
+python cache.py restaurar demo                             # si algo falla: vuelve a poner la copia y se repite la carga
 ```
 Con la caché vacía, CAT necesita internet y la clave de Gemini en `.env`.
 

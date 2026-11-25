@@ -8,13 +8,14 @@ Ejemplos:
     python cargar.py cat --limite 20       # solo los 20 primeros registros (para probar)
     python cargar.py todas --borrar --muestra   # demo: carga datos/muestra/ (12 por fuente)
     python cargar.py todas --muestra --abrir    # ... y abre el informe HTML en el navegador
-    python cargar.py --vaciar-cache             # borra las cachés: la próxima carga usa Selenium y Gemini de verdad
-    python cargar.py --restaurar-cache          # vuelve a poner las cachés de cache/backup/ (si Selenium o la IA fallan)
+    python cargar.py --vaciar-cache --muestra   # borra la caché demo: la próxima carga usa Selenium y Gemini de verdad
+    python cargar.py --restaurar-cache --muestra   # vuelve a poner la copia de cache/demo/backup/
 
-Cachés (cache/geocache.json de Selenium y cache/ambito_cache.json de Gemini), consulta a consulta:
+Cachés de Selenium (geocache.json) y Gemini (ambito_cache.json), una por modo:
+  cache/demo/ con --muestra y cache/completa/ con los datos completos (ver ong/comun/caches.py).
   - lo que ya está guardado se aprovecha (no se vuelve a preguntar);
   - lo que no está se consulta en directo (Selenium / Gemini) y se guarda.
-  La copia de seguridad está en cache/backup/ y no se toca nunca.
+  Cada una tiene su copia de seguridad en backup/. Para gestionarlas: python cache.py
 
 Al terminar se escribe en consola (con colores) el informe registro a registro (cargados con sus
 datos, reparados con antes/después y motivo, avisos, rechazados con motivo y duplicados) y se
@@ -23,15 +24,14 @@ queda en salida/<fuente>_informe.json.
 """
 import argparse
 import json
-import shutil
 import sys
 import webbrowser
 from pathlib import Path
 
+from ong.comun import caches
 from ong.comun import informe as I
 from ong.comun.almacen import Almacen
-from ong.comun.ambito_ia import CACHE_POR_DEFECTO as CACHE_IA
-from ong.comun.geocoder import CACHE as CACHE_GEO, Geocoder
+from ong.comun.geocoder import Geocoder
 from ong.extractores.extractor_can import ExtractorCAN
 from ong.extractores.extractor_cat import ExtractorCAT
 from ong.extractores.extractor_cv import ExtractorCV
@@ -46,8 +46,6 @@ FUENTES = {
     "can": (wrapper_can.convertir, ExtractorCAN),
 }
 SALIDA = Path(__file__).parent / "salida"
-CACHES = (CACHE_GEO, CACHE_IA)
-BACKUP = CACHE_GEO.parent / "backup"
 # Muestra representativa para la demo: mismo formato y nombre que el fichero original de cada
 # fuente, con casos que se cargan, se reparan y se rechazan.
 MUESTRA = {f: fichero(f, muestra=True) for f in FUENTES}
@@ -66,8 +64,8 @@ def main():
     p.add_argument("--muestra", action="store_true", help="cargar la muestra de datos/muestra/ (demo)")
     p.add_argument("--abrir", action="store_true", help="abrir salida/informe.html en el navegador al terminar")
     p.add_argument("--vaciar-cache", action="store_true",
-                   help="borrar las cachés de Selenium y Gemini (la copia de cache/backup/ se conserva)")
-    p.add_argument("--restaurar-cache", action="store_true", help="copiar las cachés de cache/backup/")
+                   help="borrar la caché del modo (demo con --muestra, si no completa); su copia de backup/ se conserva")
+    p.add_argument("--restaurar-cache", action="store_true", help="poner la copia de backup/ de la caché del modo")
     args = p.parse_args()
     color = sys.stdout.isatty()                  # colores solo en la terminal, no al redirigir a un fichero
     if not args.fuentes and not (args.borrar or args.vaciar_cache or args.restaurar_cache):
@@ -75,21 +73,11 @@ def main():
     if args.vaciar_cache and args.restaurar_cache:
         p.error("--vaciar-cache y --restaurar-cache no se pueden usar a la vez")
 
+    modo = caches.modo(args.muestra)               # cache/demo/ o cache/completa/
     if args.vaciar_cache:
-        BACKUP.mkdir(exist_ok=True)
-        for f in CACHES:
-            if f.exists() and not (BACKUP / f.name).exists():
-                shutil.copy2(f, BACKUP / f.name)          # sin copia previa, se hace antes de borrar
-            f.unlink(missing_ok=True)
-        print("Cachés vaciadas: la próxima carga consultará Selenium y Gemini en directo "
-              "(copia en cache/backup/; para volver: python cargar.py --restaurar-cache).")
+        print(caches.vaciar(modo), f"Para volver: python cargar.py --restaurar-cache{' --muestra' * args.muestra}")
     if args.restaurar_cache:
-        for f in CACHES:
-            if (BACKUP / f.name).exists():
-                shutil.copy2(BACKUP / f.name, f)
-                print(f"Caché restaurada: cache/{f.name}")
-            else:
-                print(f"No hay copia de cache/{f.name} en cache/backup/")
+        print(caches.restaurar(modo))
 
     fuentes = list(FUENTES) if "todas" in args.fuentes else args.fuentes
     almacen = Almacen()
@@ -101,7 +89,7 @@ def main():
         return
 
     # Lo que está en la caché se aprovecha; lo que falta se consulta con Selenium (salvo --solo-cache).
-    geocoder = Geocoder(usar_web=not args.solo_cache, visible=args.visible)
+    geocoder = Geocoder(usar_web=not args.solo_cache, visible=args.visible, cache=caches.geocache(modo))
     SALIDA.mkdir(exist_ok=True)
     informes, texto = [], []
     try:
